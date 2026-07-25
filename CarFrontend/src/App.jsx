@@ -15,7 +15,7 @@ import Ingest from "./pages/Ingest";
 import ManualEntry from "./pages/ManualEntry";
 import AuditHistory from "./pages/AuditHistory";
 
-import DashboardLayout from "./DashboardLayout";
+import DashboardLayout from "./Dashboardlayout";
 
 function ProtectedRoute() {
   const { isAuthenticated } = useVaultStore();
