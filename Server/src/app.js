@@ -36,4 +36,4 @@ app.use('/api', routes);
 app.use(notFound);
 app.use(errorHandler);
 
-export {app};
+export default app;
