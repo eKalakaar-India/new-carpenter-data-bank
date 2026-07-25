@@ -1,0 +1,63 @@
+# ----------------------
+# Node
+# ----------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----------------------
+# Environment variables
+# ----------------------
+.env
+.env.*
+!*.env.example
+
+# ----------------------
+# Build files
+# ----------------------
+build/
+dist/
+coverage/
+
+# React build
+client/build/
+
+# ----------------------
+# Logs
+# ----------------------
+logs
+*.log
+
+# ----------------------
+# OS files
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# IDE / Editor
+# ----------------------
+.vscode/
+.idea/
+
+# ----------------------
+# Docker
+# ----------------------
+*.tar
+
+# ----------------------
+# Kubernetes
+# ----------------------
+*.secret.yaml
+
+# ----------------------
+# Misc
+# ----------------------
+tmp/
+temp/
+
+# ----------------------
+# Optional (if storing uploads locally)
+# ----------------------
+# server/public/images/
