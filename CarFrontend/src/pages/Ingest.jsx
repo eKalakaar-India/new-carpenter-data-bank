@@ -165,10 +165,10 @@ export default function Ingest( isProjectHead ) {
             }}
           >
             <option value="ALL">All Roles</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-            <option value="OPERATION_HEAD">Operation Head</option>
-            <option value="PROJECT_HEAD">Project Head</option>
-            <option value="MOBILIZER">Mobilizer</option>
+            <option value="Super Admin">Super Admin</option>
+            <option value="Operation Head">Operation Head</option>
+            <option value="Project Head">Project Head</option>
+            <option value="Mobilizer">Mobilizer</option>
           </select>
 
         </div>

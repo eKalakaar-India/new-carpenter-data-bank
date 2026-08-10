@@ -28,6 +28,12 @@ class AuthRepository {
     return data;
   }
 
+  async findUserByRole(role) {
+    const { data, error } = await supabase.from(this.table).select('*').eq('role', role);
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch users by role', [{ field: 'User by Role', message: error.message }]);
+    return data;
+  }
+
   async updateUser(id, payload) {
     const { data, error } = await supabase.from(this.table).update(payload).eq('id', id).select().single();
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to update user', [{ field: 'id', message: error.message }]);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import validate from '../../middlewares/validate.js';
 import { changePasswordSchema, loginSchema, registerAdminSchema } from './auth.validation.js';
-import { changePassword, getCurrentUser, login, logout, registerAdmin, getAllUsers, blockUser, deleteUser } from './auth.controller.js';
+import { changePassword, getCurrentUser, login, logout, registerAdmin, getAllUsers, blockUser, deleteUser, getMobilizers } from './auth.controller.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 
 const router = Router();
@@ -14,4 +14,5 @@ router.get('/me', authenticate, getCurrentUser);
 router.patch('/change-password', authenticate, authorize(['Super Admin', 'Project Head']), validate(changePasswordSchema, 'body'), changePassword);
 router.patch('/block-user/:id', authenticate, authorize(['Super Admin', 'Project Head']), blockUser);
 router.delete("/delete/:id", authenticate, authorize(['Super Admin', 'Project Head']),deleteUser)
+router.get('/fetch-mobilisers', authenticate, authorize(['Super Admin', 'Project Head', 'Operation Head']), getMobilizers)
 export default router;

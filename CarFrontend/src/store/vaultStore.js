@@ -32,7 +32,9 @@ export const useVaultStore = create((set, get) => ({
   authLoading: false,
   // Records state
   records: [],
+  recordsMobilizer:[],
   recordsLoading: false,
+  batchTable:[],
   pagination: {
     total: 0,
     page: 1,
@@ -50,19 +52,26 @@ export const useVaultStore = create((set, get) => ({
     categories: [],
     states: []
   },
-
+  userMobilisers:[],
   userBase:[],
   userBaseLoading:false,
     // Import state
-  uploadPreview: null,
-  uploadLoading: false,
-  uploadError: null,
+  selectedFile: null,
+  previewRows: [],
+  previewCount: 0,
+  isParsing: false,
+  isUploading: false,
+  uploadResult: null,
+  error: null,
   importHistory: [],
   activityLogs: [],
-
+  allBatches:[],
   // Analytics state
   analyticsData: null,
   analyticsLoading: false,
+
+  certificateLinksUpload: { loading: false, error: null, result: null },
+  insuranceLinksUpload: { loading: false, error: null, result: null },
 
   // AUTH ACTIONS
   login: async (email, password) => {
@@ -131,6 +140,7 @@ export const useVaultStore = create((set, get) => ({
           search: activeFilters.search,
           category: activeFilters.category,
           state: activeFilters.state,
+          district:activeFilters.district
           // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
         }
       });
@@ -143,6 +153,62 @@ export const useVaultStore = create((set, get) => ({
 
       set({
         records: items,
+        pagination: {
+          total: paginationData.total ?? items.length,
+          page: paginationData.page ?? page,
+          limit: paginationData.pageSize ?? activeFilters.limit ?? 20,
+          totalPages: paginationData.totalPages ?? 1,
+        },
+        aggregates: payload?.aggregates ?? { categories: [], states: [] },
+        recordsLoading: false,
+        filters: activeFilters
+      });
+    } catch (error) {
+      set({ recordsLoading: false });
+      console.error('Failed to load partnership vault entries:', error);
+    }
+  },
+
+  
+  fetchAllBatches: async (page = 1, forceFilters = {}) => {
+    set({ recordsLoading: true });
+    try {
+      const activeFilters = { ...get().filters, ...forceFilters };
+      const response = await axios.get('/api/batches');
+
+      console.log(response.data.data.items);
+
+     set({allBatches:response.data.data.items})
+    } catch (error) {
+      set({ recordsLoading: false });
+      console.error('Failed to load partnership vault entries:', error);
+    }
+  },
+
+  fetchBatches: async (page = 1, forceFilters = {}) => {
+    set({ recordsLoading: true });
+    try {
+      const activeFilters = { ...get().filters, ...forceFilters };
+      const response = await axios.get('/api/batches', {
+        params: {
+          page,
+          pageSize: activeFilters.limit || 20,
+          search: activeFilters.search,
+          category: activeFilters.category,
+          state: activeFilters.state,
+          district:activeFilters.district
+          // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
+        }
+      });
+
+      console.log(response.data);
+
+      const payload = normalizeApiResponse(response.data.data);
+      const items = payload?.items ?? payload?.records ?? [];
+      const paginationData = payload?.pagination ?? {};
+
+      set({
+        batchTable: items,
         pagination: {
           total: paginationData.total ?? items.length,
           page: paginationData.page ?? page,
@@ -172,36 +238,22 @@ export const useVaultStore = create((set, get) => ({
       
     }
   },
-
   setFilters: (newFilters) => {
     set({ filters: { ...get().filters, ...newFilters } });
   },
 
   addRecord: async (recordData) => {
     try {
-      const payload = {
-        aadhar_name: recordData.name,
-        mobile_no: recordData.mobile_number,
-        identity_card_no: recordData.aadhaar_number,
-        age: recordData.age,
-        date_of_birth: recordData.dob,
-        gender: recordData.gender,
-        address: recordData.address,
-        district: recordData.district,
-        state: recordData.state,
-        pin: recordData.pincode,
-        nominee_name: recordData.nom_name,
-        nominee_gender: recordData.nom_gender,
-        nominee_dob: recordData.nom_dob,
-        relationship_with_participant: recordData.nom_relationship,
-        nominee_mobile_no: recordData.nom_mobile,
-        father_name: recordData.fathername,
-        marital_status:recordData.marital_status,
-        religion: recordData.religion
-      };
-      console.log(payload);
+      console.log(recordData instanceof FormData); // Should be true
 
-      const response = await axios.post('/api/carpenters', payload);
+      for (const [key, value] of recordData.entries()) {
+        console.log(key, value);
+      }
+      const payload = recordData;
+      
+      // console.log(payload);
+      
+      const response = await axios.post('/api/carpenters', recordData);
       const normalized = normalizeApiResponse(response.data);
       set((state) => ({
         records: [normalized, ...state.records],
@@ -215,7 +267,7 @@ export const useVaultStore = create((set, get) => ({
 
   updateRecord: async (id, updatedData) => {
     try {
-      const response = await axios.put(`/api/records/${id}`, updatedData);
+      const response = await axios.put(`/api/carpenters/${id}`, updatedData);
       const normalized = normalizeApiResponse(response.data);
       set((state) => ({
         records: state.records.map(rec => rec.id === id ? normalized : rec)
@@ -235,7 +287,15 @@ export const useVaultStore = create((set, get) => ({
       return false;
     }
   },
-
+  deleteBatch: async(id)=>{
+    try {
+      await axios.delete(`/api/batches/delete/${id}`);
+      return true;
+    } catch (error) {
+      console.error('Delete batch failed:', error);
+      return false;
+    }
+  },
   deleteRecord: async (id) => {
     try {
       await axios.delete(`/api/auth/delete/${id}`);
@@ -248,7 +308,7 @@ export const useVaultStore = create((set, get) => ({
 
   bulkDeleteRecords: async (ids) => {
     try {
-      await axios.post('/records/bulk-delete', { ids });
+      await axios.post('/api/carpenters/participants/bulk-delete', ids );
       get().fetchRecords(1);
       return true;
     } catch (error) {
@@ -328,17 +388,87 @@ export const useVaultStore = create((set, get) => ({
   },
 
   // SYSTEM LOGS & ANALYTICS ACTIONS
-  fetchAnalytics: async () => {
+  fetchAnalytics: async (period = 'monthly') => {
     set({ analyticsLoading: true });
     try {
-      const response = await axios.get('/api/dashboard');
-      // console.log(response.data.data);
+      const response = await axios.get('/api/dashboard', { params: { period } });
+      console.log('Analytics response:', response.data.data);
       set({ analyticsData: response.data.data, analyticsLoading: false });
     } catch (error) {
       set({ analyticsLoading: false });
       console.error('Failed to fetch analytics statistics:', error);
     }
   },
+
+  resolveStorageFileUrl: async (filePath) => {
+    if (!filePath) return null;
+
+    if (typeof filePath === 'string' && /^https?:\/\//i.test(filePath)) {
+      return filePath;
+    }
+
+    try {
+      const response = await axios.get('/api/storage/signed-url', {
+        params: { path: filePath }
+      });
+      const payload = normalizeApiResponse(response.data);
+      return payload?.signedUrl || payload?.data?.signedUrl || null;
+    } catch (error) {
+      console.error('Failed to resolve storage file URL:', error);
+      return null;
+    }
+  },
+
+  addToBatch: async (payload) => {
+    try {
+      const response = await axios.put('/api/carpenters/addtobatch/batches', payload);
+      return true;
+    } catch (error) {
+      console.error('Failed to fetch analytics statistics:', error);
+    }
+  },
+
+  fetchMobilisers: async ()=>{
+    try {
+      const response = await axios.get('/api/auth/fetch-mobilisers');
+      set({ userMobilisers: response.data.data});
+
+    }catch(error){
+      console.error("Failed to fetch userData by role.")
+    }
+  },
+
+  createBatch: async (payload)=>{
+    try{
+      const batch = payload
+      await axios.post('/api/batches/create', batch)
+      return true
+    }catch(error){
+      throw new Error(getErrorMessage(error));
+    }
+  },
+  updateBatch: async (payload)=>{
+    try{
+      const status = payload.status
+      await axios.put(`/api/batches/edit/${payload.id}`, {status: status})
+      return true
+    }catch(error){
+      throw new Error(getErrorMessage(error));
+    }
+  },
+  updateCompletedBatch: async(payload, id)=>{
+    try {
+      const config = payload instanceof FormData ? {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      } : undefined;
+      await axios.put(`/api/batches/complete-batch/${id}`, payload, config);
+      return true;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  
 
   fetchActivityLogs: async () => {
     try {
@@ -347,5 +477,148 @@ export const useVaultStore = create((set, get) => ({
     } catch (error) {
       console.error('Failed to fetch admin security trails:', error);
     }
+  },
+
+  setSelectedFile: async (file) => {
+    set({ selectedFile: file, error: null, uploadResult: null, isParsing: true, previewRows: [], previewCount: 0 });
+ 
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+ 
+      set({
+        previewRows: rows.slice(0, 5),
+        previewCount: rows.length,
+        isParsing: false,
+      });
+    } catch (err) {
+      set({
+        error: "That file couldn't be read. Confirm it's a valid .xlsx or .xls file and try again.",
+        isParsing: false,
+      });
+    }
+  },
+ 
+  clearSelectedFile: () => set({ 
+    selectedFile: null,
+    previewRows: [],
+    previewCount: 0,
+    isParsing: false,
+    isUploading: false,
+    uploadResult: null,
+    error: null
+  }),
+ 
+  /**
+   * Sends the original file to the backend for parsing, validation, and
+   * insertion into the participants table.
+   */
+  uploadFile: async () => {
+    const { selectedFile } = get();
+    if (!selectedFile) return null;
+ 
+    set({ isUploading: true, error: null });
+ 
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+ 
+      const response = await axios.post(`/api/file/upload`, formData);
+      console.log(response);
+      const result = await response.data.message;
+ 
+      if (!result) {
+        throw new Error(result.message || 'Upload failed.');
+      }
+ 
+      set({ uploadResult: result, isUploading: false });
+      return result;
+    } catch (err) {
+      set({ error: err.message, isUploading: false });
+      throw err;
+    }
+  },
+ 
+  reset: () => set({ ...initialState }),
+
+  uploadCertificateLinks: async (file) => {
+    set({ certificateLinksUpload: { loading: true, error: null, result: null } });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axios.post('/api/links/certificates/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const result = normalizeApiResponse(response.data);
+      set({ certificateLinksUpload: { loading: false, error: null, result } });
+      return result;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      set({ certificateLinksUpload: { loading: false, error: message, result: null } });
+      throw new Error(message);
+    }
+  },
+
+  uploadInsuranceLinks: async (file) => {
+    set({ insuranceLinksUpload: { loading: true, error: null, result: null } });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axios.post('/api/links/insurance/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const result = normalizeApiResponse(response.data);
+      set({ insuranceLinksUpload: { loading: false, error: null, result } });
+      return result;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      set({ insuranceLinksUpload: { loading: false, error: message, result: null } });
+      throw new Error(message);
+    }
+  },
+
+  
+   fetchMobilizerRecords: async (page = 1, forceFilters = {}) => {
+    set({ recordsLoading: true });
+    try {
+      const activeFilters = { ...get().filters, ...forceFilters };
+      const response = await axios.get('/api/carpenters/fetch/mobilizer-records', {
+        params: {
+          page,
+          pageSize: activeFilters.limit || 20,
+          search: activeFilters.search,
+          category: activeFilters.category,
+          state: activeFilters.state,
+          district:activeFilters.district
+          // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
+        }
+      });
+
+      console.log(response.data);
+
+      const payload = normalizeApiResponse(response.data);
+      const items = payload?.items ?? payload?.records ?? [];
+      const paginationData = payload?.pagination ?? {};
+
+      set({
+        recordsMobilizer: items,
+        pagination: {
+          total: paginationData.total ?? items.length,
+          page: paginationData.page ?? page,
+          limit: paginationData.pageSize ?? activeFilters.limit ?? 20,
+          totalPages: paginationData.totalPages ?? 1,
+        },
+        aggregates: payload?.aggregates ?? { categories: [], states: [] },
+        recordsLoading: false,
+        filters: activeFilters
+      });
+    } catch (error) {
+      set({ recordsLoading: false });
+      console.error('Failed to load partnership vault entries:', error);
+    }
   }
+
 }));

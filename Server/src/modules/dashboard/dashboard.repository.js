@@ -4,7 +4,15 @@ import { HTTP_STATUS } from '../../utils/constants.js';
 
 class DashboardRepository {
   async getCarpenters() {
-    const { data, error } = await supabase.from('participants').select('*');
+    // const { data, error } = await supabase.from('participants').select('*');
+    let {data, error} = await supabase.from('participants').select(`*, batch_data:batches!participants_batch_id_fkey(
+        id,
+        batch_id,
+        workshop_date,
+        full_address,
+        status
+      )`);
+
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch dashboard data', [{ field: 'carpenters', message: error.message }]);
     return data ?? [];
   }

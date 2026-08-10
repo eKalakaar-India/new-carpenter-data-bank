@@ -16,7 +16,10 @@ import {
   User as UserIcon,
   Sparkles,
   Menu,
+  UserPlus,
   X,
+  Boxes,
+  ImageUp,
   Shield
 } from 'lucide-react';
 import { Route, Routes, Link, useNavigate, NavLink, Navigate, Outlet } from 'react-router-dom';
@@ -31,11 +34,14 @@ export default function DashboardLayout() {
   const location = useLocation();
   const role = user.role
   const pageTitles = {
-    "/dashboard": "Executive Intel",
-    "/records": "Partnership Vault",
+    "/dashboard": "Dashboard",
+    "/records": "Carpenters Records",
     "/ingest": "Smart Ingest",
     "/manual": "Manual Ledger",
     "/history": "Audit Trails",
+    "/Batches": "Create Batches",
+    "/uploadmasterdata": "Upload Master Data",
+    "/uploadlinks": "Upload Links",
   };
 
   const logOut = async()=>{
@@ -46,7 +52,7 @@ export default function DashboardLayout() {
 
   const menuItems = [
     {
-      label: "Executive Intel",
+      label: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard,
     },
@@ -55,11 +61,29 @@ export default function DashboardLayout() {
       path: "/records",
       icon: Database,
     },
+    
+    {
+      label: "Batches",
+      path: "/Batches",
+      icon: Boxes ,
+    },
+
+    {
+      label: "Upload Mobilization Data",
+      path: "/uploadmasterdata",
+      icon: FileUp ,
+    },
+    {
+      label: "Upload Certificate / Insurance Links",
+      path: "/uploadlinks",
+      icon: ImageUp ,
+    },
+
     {
     
       label: "Users",
       path: "/ingest",
-      icon: FileUp,
+      icon: UserPlus,
     },
     // {
     //   label: role ==="""Mobilizer Form",

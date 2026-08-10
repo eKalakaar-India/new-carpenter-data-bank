@@ -8,6 +8,8 @@ class CarpentersRepository {
   }
 
   async create(payload) {
+    // console.log(payload);
+    payload.date_of_birth = new Date(payload.date_of_birth).toISOString();
     const { data, error } = await supabase.from(this.table).insert(payload).select().single();
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to create carpenter', [{ field: 'carpenter', message: error.message }]);
     return data;
@@ -24,6 +26,18 @@ class CarpentersRepository {
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to delete carpenter', [{ field: 'id', message: error.message }]);
     return data;
   }
+  
+  async findByIds(ids) {
+    const { data, error } = await supabase.from(this.table).select('*').in('id', ids);
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch carpenters', [{ field: 'ids', message: error.message }]);
+    return data;
+  }
+
+  async deleteBulk(ids) {
+    const { data, error } = await supabase.from(this.table).delete().in('id', ids).select();
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to delete carpenters', [{ field: 'ids', message: error.message }]);
+    return data;
+  }
 
   async findById(id) {
     const { data, error } = await supabase.from(this.table).select('*').eq('id', id).maybeSingle();
@@ -31,19 +45,112 @@ class CarpentersRepository {
     return data;
   }
 
-  async findAll(filters = {}, options = {}) {
+  async updateBatch(ids, payload) {
+    const { data, error } = await supabase.from(this.table).update({ batch_id:payload.batch_id, updated_by: payload.updated_by }).in('id', ids).select();
+//     const { data: matched, error: matchError } = await supabase
+//       .from(this.table)
+//       .select("id, batch_id")
+//       .in("id", ids);
+
+//     console.log("Matched:", matched);
+//     console.log("Match error:", matchError);
+
+//         console.log(ids);
+//     console.log(Array.isArray(ids));
+//     console.log(typeof ids[0]);
+//     const { data, error } = await supabase
+//       .from(this.table)
+//       .update({
+//         batch_id: payload.batch_id,
+//       })
+//       .in("id", ids)
+//       .select();
+
+// console.log({ data, error });
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to update carpenters in batch', [{ field: 'ids', message: error.message }]);
+    return data;
+  }
+
+  async findAllMobilizerRecords(filters = {}, options = {}) {
     const { page = 1, pageSize = 20, search, sort } = options;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    let query = supabase.from(this.table).select('*', { count: 'exact' }).range(from, to);
+    let query = supabase.from(this.table).select(`*,batch_data:batches!participants_batch_id_fkey(
+        id,
+        batch_id,
+        status
+      )`, { count: 'exact' }).range(from, to);
 
     Object.entries(filters).forEach(([key, value]) => {
       if (value) query = query.eq(key, value);
     });
 
     if (search) {
-      query = query.or(`aadhar_name.ilike.%${search}%,mobile_no.ilike.%${search}%,identity_card_no.ilike.%${search}%`);
+      query = query.or(`full_name.ilike.%${search}%,mobile_no.ilike.%${search}%,id_no.ilike.%${search}%`);
+    }
+
+    if (sort) {
+      const [column, direction] = sort.split(',');
+      query = query.order(column, { ascending: direction !== 'desc' });
+    }
+
+    const { data, error, count } = await query;
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch carpenters', [{ field: 'query', message: error.message }]);
+
+    return { data, count: count ?? 0 };
+  }
+
+
+  async findAll(filters = {}, options = {}) {
+    const { page = 1, pageSize = 20, search, sort } = options;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase.from(this.table).select(`*,batch_data:batches!participants_batch_id_fkey(
+        id,
+        batch_id,
+        workshop_date,
+        full_address,
+        status
+      )`, { count: 'exact' }).range(from, to);
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) query = query.eq(key, value);
+    });
+
+    if (search) {
+      query = query.or(`full_name.ilike.%${search}%,mobile_no.ilike.%${search}%,id_no.ilike.%${search}%`);
+    }
+
+    if (sort) {
+      const [column, direction] = sort.split(',');
+      query = query.order(column, { ascending: direction !== 'desc' });
+    }
+
+    const { data, error, count } = await query;
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch carpenters', [{ field: 'query', message: error.message }]);
+
+    return { data, count: count ?? 0 };
+  }
+
+  async findAllCarpentersMobilizerRecords(filters = {}, options = {}) {
+    const { page = 1, pageSize = 20, search, sort } = options;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase.from(this.table).select(`*,batch_data:batches!participants_batch_id_fkey(
+        id,
+        batch_id,
+        status
+      )`, { count: 'exact' }).range(from, to);
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) query = query.eq(key, value);
+    });
+
+    if (search) {
+      query = query.or(`full_name.ilike.%${search}%,mobile_no.ilike.%${search}%,id_no.ilike.%${search}%`);
     }
 
     if (sort) {
@@ -58,7 +165,7 @@ class CarpentersRepository {
   }
 
   async findByAadhaar(aadhaarNumber) {
-    const { data, error } = await supabase.from(this.table).select('*').eq('identity_card_no', aadhaarNumber).maybeSingle();
+    const { data, error } = await supabase.from(this.table).select('*').eq('id_no', aadhaarNumber).maybeSingle();
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch carpenter', [{ field: 'aadhaar_number', message: error.message }]);
     return data;
   }

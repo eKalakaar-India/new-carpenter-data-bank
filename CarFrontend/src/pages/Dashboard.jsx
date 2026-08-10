@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useVaultStore } from '../store/vaultStore';
+import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, 
   Bar, 
@@ -38,6 +39,8 @@ export default function Dashboard({ setCurrentTab }) {
     fetchAnalytics, 
     isAuthenticated
   } = useVaultStore();
+
+  const navigate = useNavigate()
 
   useEffect(()=>{
     if(!isAuthenticated) navigate('/login')

@@ -108,6 +108,15 @@ class AuthService {
     logger.info({ userId }, 'User deleted');
     return { message: 'User deleted successfully' };
   }
+
+  async getMobilizers(){
+    const res  = await this.repository.findUserByRole("Mobilizer")
+    if(!res){
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, "Invalid Role.")
+    }
+    logger.info("Fetched users by role.");
+    return res
+  }
 }
 
 export default AuthService;

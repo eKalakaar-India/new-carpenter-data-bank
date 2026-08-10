@@ -9,13 +9,19 @@ import {
 import { useVaultStore } from "./store/vaultStore";
 
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+// import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard2";
 import Records from "./pages/Records";
 import Ingest from "./pages/Ingest";
 import ManualEntry from "./pages/ManualEntry";
 import AuditHistory from "./pages/AuditHistory";
-
+import MobilizerDashboardLayout from "./MobilizerDashboardlayout";
 import DashboardLayout from "./Dashboardlayout";
+import Batches from './pages/Batches'
+import ParticipantsUploadPage from './pages/UploadExcelData'
+import LinksPage from './pages/LinksUpload'
+import MobilizerRecords from './pages/MobilizerRecords'
+
 
 function ProtectedRoute() {
   const { isAuthenticated } = useVaultStore();
@@ -83,10 +89,16 @@ export default function App() {
         {/* ---------- Mobilizer ---------- */}
 
         <Route element={<MobilizerRoute />}>
-          <Route
-            path="/mobilizer-form"
-            element={<ManualEntry />}
-          />
+          <Route element={<MobilizerDashboardLayout />}>
+            <Route
+              path="/mobilizer-form"
+              element={<ManualEntry />}
+            />
+            <Route
+              path="/downloadcertificate"
+              element={<MobilizerRecords />}
+            />
+          </Route>  
         </Route>
 
         {/* ---------- Admin Layout ---------- */}
@@ -96,6 +108,10 @@ export default function App() {
             <Route
               path="/dashboard"
               element={<Dashboard />}
+            />
+            <Route
+              path="/Batches"
+              element={<Batches />}
             />
 
             <Route
@@ -111,6 +127,14 @@ export default function App() {
             <Route
               path="/history"
               element={<AuditHistory />}
+            />
+            <Route
+              path="/uploadmasterdata"
+              element={<ParticipantsUploadPage />}
+            />
+            <Route
+              path="/uploadlinks"
+              element={<LinksPage />}
             />
           </Route>
         </Route>

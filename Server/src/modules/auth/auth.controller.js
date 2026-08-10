@@ -56,4 +56,8 @@ export const deleteUser = asyncHandler(async (req, res) => {
   res.status(HTTP_STATUS.OK).json(ApiResponse.success('Users Deleted successfully'));
 })
 
+export const getMobilizers = asyncHandler(async(req, res) => {
+  const mobilizers = await authService.getMobilizers();
+  res.status(HTTP_STATUS.OK).json(ApiResponse.success('Fetched Mobilizers successfully', mobilizers));
+})
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useVaultStore } from '../store/vaultStore';
 import axios from 'axios';
 import { 
@@ -22,7 +22,8 @@ import {
   UploadCloud
 } from 'lucide-react';
 import { exportUsersToExcel } from "../utils/exportExcel";
-
+import statesData from "../constants/StateDistrictData.json";
+import { Link } from 'react-router-dom';
 
 
 const VAULT_FIELDS = [
@@ -89,18 +90,28 @@ export default function Records() {
     updateRecord,
     deduplicateRecords,
     uploadDocument,
-    deleteRecordParticipant
+    deleteRecordParticipant,
+    addToBatch,
+    fetchAllBatches,
+    allBatches,
+    resolveStorageFileUrl
   } = useVaultStore();
 
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedRecords, setSelectedRecords] = useState([])
   const [editingRecord, setEditingRecord] = useState(null);
   const [activeVaultRecord, setActiveVaultRecord] = useState(null);
+  const [verifyModalRecord, setVerifyModalRecord] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyImageUrl, setVerifyImageUrl] = useState('');
   
   const [searchVal, setSearchVal] = useState(filters.search);
 
   // Custom searchable dropdown states
   const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
   const [stateSearch, setStateSearch] = useState('');
+  const [districtDropdownOpen , setDistrictDropdownOpen ] = useState(false);
+  const [districtSearch, setDistrictSearch] = useState('');
   
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
@@ -110,6 +121,7 @@ export default function Records() {
   const [editCategorySearch, setEditCategorySearch] = useState('');
   const [editStateDropdownOpen, setEditStateDropdownOpen] = useState(false);
   const [editStateSearch, setEditStateSearch] = useState('');
+  const [batchId, setBatchID] = useState('');
 
   // Synchronized scrollbar refs
   const topScrollRef = useRef(null);
@@ -133,6 +145,7 @@ export default function Records() {
 
   useEffect(() => {
     fetchRecords(1);
+    fetchAllBatches()
   }, []);
 
   useEffect(() => {
@@ -169,9 +182,11 @@ export default function Records() {
     }
   };
 
-  const handleSelectRow = (e, id) => {
+  const handleSelectRow = (e, id, data) => {
+    console.log(data);
     if (e.target.checked) {
       setSelectedIds(prev => [...prev, id]);
+      setSelectedRecords(prev => [...prev, data]);
     } else {
       setSelectedIds(prev => prev.filter(item => item !== id));
     }
@@ -186,9 +201,44 @@ export default function Records() {
     }
   };
 
+  const handleBulkAddToBatch = async ()=>{
+    let res = await addToBatch({ids: selectedIds, batch:batchId});
+    if(res){
+      alert('Carpenters added to batch');
+    }else{
+      alert('Could not add to Batch')
+    }
+  }
+
   const handleDelete = async (id) => {
     if (confirm('Are you sure you want to clear this entry?')) {
       await deleteRecordParticipant(id);
+    }
+    fetchRecords(1);
+  };
+
+  const handleVerifyClick = async (record) => {
+    setVerifyModalRecord(record);
+    setVerifyImageUrl('');
+
+    if (record?.id_link) {
+      const resolvedUrl = await resolveStorageFileUrl(record.id_link);
+      console.log('Resolved URL:', resolvedUrl);
+      setVerifyImageUrl(resolvedUrl || '');
+    }
+  };
+
+  const handleConfirmVerification = async () => {
+    if (!verifyModalRecord) return;
+
+    try {
+      setIsVerifying(true);
+      await updateRecord(verifyModalRecord.id, { isVerified: true });
+      setVerifyModalRecord(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -255,13 +305,21 @@ export default function Records() {
 
   const categories = ['Master Carpenter', 'Apprentice', 'Cabinet Maker', 'Framer', 'Other'];
 
-  const INDIAN_STATES = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 
-    'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 
-    'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 
-    'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 
-    'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh'
-  ];
+  const INDIAN_STATES = statesData.states.map((item) => item.state);
+
+  const getDistricts = (selectedState) => {
+    return (
+      statesData.states.find((item) => item.state === selectedState)?.districts || []
+    );
+  };
+
+  const districts = useMemo(() => {
+    if (!filters.state) return [];
+
+    return (
+      statesData.states.find((s) => s.state === filters.state)?.districts || []
+    );
+  }, [filters.state]);
 
   // Reusable pagination element
   const renderPagination = (positionLabel) => {
@@ -311,7 +369,7 @@ export default function Records() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-3xl font-bold tracking-wide text-slate-900">
-            Partnership <span className="font-normal italic text-[var(--accent-primary)]">Vault Ledger</span>
+            Carpenter <span className="font-normal italic text-[var(--accent-primary)]">Records</span>
           </h2>
           <p className="text-slate-500 text-xs mt-1 uppercase tracking-wider font-medium">
             Search, sort, filter, and extract intelligence from active records
@@ -319,14 +377,7 @@ export default function Records() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button 
-            onClick={() => triggerExport('csv')}
-            className="btn-frosted text-sm font-semibold flex items-center gap-2"
-          >
-            <Download size={14} />
-            <span>CSV</span>
-          </button>
-          <button 
-            onClick={() => exportUsersToExcel(records)}
+            onClick={() => exportUsersToExcel(selectedRecords)}
             className="btn-gold text-sm font-semibold"
           >
             <span>Excel Sheet</span>
@@ -368,81 +419,37 @@ export default function Records() {
         </div>
 
         {selectedIds.length > 0 && (
-          <div className="flex items-center gap-3 bg-red-50 border border-red-200 px-4 py-2 rounded-xl text-xs font-semibold text-red-600 shadow-sm">
-            <span>Selected {selectedIds.length} Entries</span>
-            <button 
-              onClick={handleBulkDelete}
-              className="p-1.5 hover:bg-red-100 rounded-lg border border-red-200 hover:text-red-700 transition-colors"
-            >
-              <Trash2 size={14} />
-            </button>
+          <div className="flex items-center gap-3 px-4 py-2">
+            <select onChange={(e)=>setBatchID(e.target.value)}>
+              <option>---Select Batch---</option>
+              {
+                allBatches && allBatches.map((item, index)=>(
+                  <option key={index} value={item.id}>{item.batch_id}</option>
+                ))
+              }
+            </select>
+            <div className="flex items-center gap-3 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-xl shadow-sm transition-colors text-xs font-semibold">
+              <button 
+                onClick={handleBulkAddToBatch}
+              >
+                Add To Batch
+              </button>
+            </div>
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 px-4 py-2 rounded-xl text-xs font-semibold text-red-600 shadow-sm">
+              <span>Selected {selectedIds.length} Entries</span>
+              <button 
+                onClick={handleBulkDelete}
+                className="p-1.5 hover:bg-red-100 rounded-lg border border-red-200 hover:text-red-700 transition-colors"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       {/* Dynamic Filters Area (Horizontal Grid above the table) */}
       <div className="vault-card !overflow-visible grid grid-cols-1 md:grid-cols-3 gap-4 bg-white border-[#DDE3EA]">
-        {/* Category */}
-        <div className="flex flex-col relative">
-          <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">Category</label>
-          <button
-            type="button"
-            onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-            className="bg-[#F5F7FA] border border-[#DDE3EA] hover:border-[var(--accent-primary)]/40 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--accent-primary)] font-semibold flex justify-between items-center w-full shadow-sm text-left transition-all"
-          >
-            <span>{filters.category || '-- All Categories --'}</span>
-            <span className="text-slate-400 text-[10px]">▼</span>
-          </button>
-
-          {categoryDropdownOpen && (
-            <>
-              {/* Invisible Click Overlay to Close */}
-              <div className="fixed inset-0 z-30" onClick={() => setCategoryDropdownOpen(false)} />
-              
-              {/* Dropdown Container */}
-              <div 
-                className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#DDE3EA] rounded-xl shadow-xl z-40 max-h-60 overflow-y-auto p-2.5 space-y-1 animate-fadeIn"
-                style={{ minWidth: '200px' }}
-              >
-                <input
-                  type="text"
-                  placeholder="Search category..."
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[#F5F7FA] border border-[#DDE3EA] rounded-lg text-xs focus:outline-none focus:border-[var(--accent-primary)] mb-2 font-semibold"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleFilterChange('category', '');
-                    setCategoryDropdownOpen(false);
-                    setCategorySearch('');
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${!filters.category ? 'bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold' : 'text-slate-700 hover:bg-[#F5F7FA] transition-colors'}`}
-                >
-                  -- All Categories --
-                </button>
-                {categories
-                  .filter(c => c.toLowerCase().includes(categorySearch.toLowerCase()))
-                  .map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => {
-                        handleFilterChange('category', c);
-                        setCategoryDropdownOpen(false);
-                        setCategorySearch('');
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${filters.category === c ? 'bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold' : 'text-slate-700 hover:bg-[#F5F7FA] transition-colors'}`}
-                    >
-                      {c}
-                    </button>
-                  ))
-                }
-              </div>
-            </>
-          )}
-        </div>
 
         {/* State */}
         <div className="flex flex-col relative">
@@ -506,11 +513,91 @@ export default function Records() {
           )}
         </div>
 
+        <div className="flex flex-col relative">
+          <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
+            District
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setDistrictDropdownOpen(!districtDropdownOpen)}
+            className="bg-[#F5F7FA] border border-[#DDE3EA] hover:border-[var(--accent-primary)]/40 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--accent-primary)] font-semibold flex justify-between items-center w-full shadow-sm text-left transition-all"
+            disabled={!filters.state}
+          >
+            <span>
+              {filters.district || "-- All Districts --"}
+            </span>
+            <span className="text-slate-400 text-[10px]">▼</span>
+          </button>
+
+          {districtDropdownOpen && (
+            <>
+              {/* Invisible Click Overlay */}
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setDistrictDropdownOpen(false)}
+              />
+
+              {/* Dropdown */}
+              <div
+                className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#DDE3EA] rounded-xl shadow-xl z-40 max-h-60 overflow-y-auto p-2.5 space-y-1 animate-fadeIn"
+                style={{ minWidth: "200px" }}
+              >
+                <input
+                  type="text"
+                  placeholder="Search district..."
+                  value={districtSearch}
+                  onChange={(e) => setDistrictSearch(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-[#F5F7FA] border border-[#DDE3EA] rounded-lg text-xs focus:outline-none focus:border-[var(--accent-primary)] mb-2 font-semibold"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterChange("state", s);
+                    handleFilterChange("district", "");
+                    setStateDropdownOpen(false);
+                    setStateSearch("");
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    !filters.district
+                      ? "bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold"
+                      : "text-slate-700 hover:bg-[#F5F7FA] transition-colors"
+                  }`}
+                >
+                  -- All Districts --
+                </button>
+
+                {districts.filter((d) =>
+                  d.toLowerCase().includes(districtSearch.toLowerCase())
+                ).map((district) => (
+                  <button
+                    key={district}
+                    type="button"
+                    onClick={() => {
+                      handleFilterChange("district", district);
+                      setDistrictDropdownOpen(false);
+                      setDistrictSearch("");
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                      filters.district === district
+                        ? "bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold"
+                        : "text-slate-700 hover:bg-[#F5F7FA] transition-colors"
+                    }`}
+                  >
+                    {district}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="flex items-end">
           <button
             onClick={() => {
               setSearchVal('');
-              setFilters({ category: '', state: '' });
+              setFilters({ category: '', state: '', district:'' });
               fetchRecords(1);
             }}
             className="w-full py-2.5 bg-[#E8ECF2] hover:bg-[#DDE3EA] text-xs text-[var(--accent-primary)] hover:text-red-750 border border-[#DDE3EA] rounded-lg transition-colors font-bold shadow-sm"
@@ -563,6 +650,7 @@ export default function Records() {
                   {/* <th className="w-36">Candidate Number</th> */}
                   <th className="w-36">Enrollment Date</th>
                   <th className="w-48">Full Name</th>
+                  <th className="w-48">Batch Data</th>
                   <th className="w-36">Certificate</th>
                   <th className="w-36">Insurance</th>
                   <th className="w-40 text-center">Credentials Vault</th>
@@ -591,70 +679,87 @@ export default function Records() {
                     <td className="text-center sticky left-0 z-10 border-r border-[#DDE3EA] sticky-col">
                       <input 
                         type="checkbox" 
-                        onChange={(e) => handleSelectRow(e, rec.id)}
+                        onChange={(e) => handleSelectRow(e, rec.id, rec)}
                         checked={selectedIds.includes(rec.id)}
                         className="rounded border-[#DDE3EA] bg-white text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]/20 h-4 w-4"
                       />
                     </td>
-                    <td className="font-semibold text-[var(--accent-primary)]">{index + 1 || '-'}</td>
-                    <td className="text-xs text-slate-600">{formatDate(rec.created_at) || '-'}</td>
-                    <td className="font-serif font-bold text-slate-900 text-sm">{rec.aadhar_name || '-'}</td>
-                    <td className="text-xs text-slate-700">{rec.has_certificate || '-'}</td>
-                    <td className="text-xs text-slate-600 font-mono">{rec.insurance_enrolled || '-'}</td>
+                    <td className="font-semibold text-[var(--accent-primary)]">{index + 1 || 'NA'}</td>
+                    <td className="text-xs text-slate-600">{formatDate(rec.created_at) || 'NA'}</td>
+                    <td className="font-serif font-bold text-slate-900 text-sm">{rec.full_name || 'NA'}</td>
+                    <td className="font-serif font-bold text-slate-900 text-sm">
+                      <div>
+                        {rec.batch_data?.batch_id || 'NA'}
+                      </div>
+                      <div>
+                        {rec.batch_data?.status || 'NA'}
+                      </div>
+                    </td>
+                    <td className="text-xs text-slate-700">{rec.has_certificate ? "Yes" : "No" || 'NA'}</td>
+                    <td className="text-xs text-slate-600 font-mono">{rec.has_insurance ? "Yes" : "No" || 'NA'}</td>
                     
                     {/* Embedded documents icons */}
                     <td className="text-center">
                       <div className="inline-flex gap-2.5 justify-center items-center">
-                        <button
-                          onClick={() => handleDocClick(rec.id, 'certificate', rec.certificateLink)}
+                        <a
+                          href={rec?.certificate_link }
+                          target={rec?.has_certificate ? "_blank" : undefined}
+                          rel="noopener noreferrer"
                           className={`p-1.5 rounded-lg border transition-all ${
-                            rec.certificateLink 
+                            rec?.has_certificate 
                               ? 'bg-amber-50 text-amber-600 border-amber-200 shadow-sm' 
                               : 'bg-slate-50 text-slate-400 hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)] border-[#DDE3EA]'
                           }`}
-                          title={rec.certificateLink ? "Open Professional Certificate" : "Upload Certificate PDF"}
+                          title={rec.has_certificate ? "Open Professional Certificate" : "Certificate not uploaded yet."}
                         >
                           <Award size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDocClick(rec.id, 'insurance1', rec.insuranceLink1)}
+                        </a>
+                        <a
+                          href={rec?.insurance_links.niva || '#' }
+                          target={rec?.has_insurance ? "_blank" : undefined}
+                          rel="noopener noreferrer"
                           className={`p-1.5 rounded-lg border transition-all ${
-                            rec.insuranceLink1 
+                            rec?.has_insurance 
                               ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-sm' 
                               : 'bg-slate-50 text-slate-400 hover:text-blue-500 hover:border-blue-500 border-[#DDE3EA]'
                           }`}
-                          title={rec.insuranceLink1 ? "Open Primary Insurance" : "Upload Primary Insurance PDF"}
+                          title={rec.has_insurance ? "Open Primary Insurance" : "Niva Insurance not uploaded yet."}
                         >
                           <Shield size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDocClick(rec.id, 'insurance2', rec.insuranceLink2)}
+                        </a>
+                        <a
+                          href={rec?.insurance_links.MSwasth || '#'}
+                          target={rec?.has_insurance ? "_blank" : undefined}
+                          rel="noopener noreferrer"
                           className={`p-1.5 rounded-lg border transition-all ${
-                            rec.insuranceLink2 
+                            rec.has_insurance 
                               ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm' 
                               : 'bg-slate-50 text-slate-400 hover:text-emerald-500 hover:border-emerald-500 border-[#DDE3EA]'
                           }`}
-                          title={rec.insuranceLink2 ? "Open Secondary Insurance" : "Upload Secondary Insurance PDF"}
+                          title={rec.has_insurance ? "Open MSwasth Insurance" : "MSwasth Insurance not uploaded yet."}
                         >
                           <ShieldCheck size={14} />
-                        </button>
+                        </a>
                       </div>
                     </td>
 
-                    <td className="text-xs text-slate-600">{rec.date_of_birth || '-'}</td>
-                    <td className="text-xs text-slate-600">{rec.marital_status || '-'}</td>
-                    <td className="text-xs text-slate-600">{rec.religion || '-'}</td>
-                    <td className="text-xs text-slate-600 font-mono">{rec.pin || '-'}</td>
-                    <td className="text-xs text-slate-600">{rec.identity_card_no || '-'}</td>
-                    <td className="text-xs text-slate-750 font-bold">{rec.nominee_name || '-'}</td>
-                    <td className="text-xs text-slate-600">{rec.nominee_gender || '-'}</td>
-                    <td className="text-xs text-slate-600">{rec.nominee_dob || '-'}</td>
-                    <td className="text-xs text-slate-650">{rec.relationship_with_participant || '-'}</td>
-                    <td className="text-xs text-slate-500 max-w-[120px] truncate">{rec.state || '-'}</td>
-                    <td className="text-xs text-slate-500 max-w-[120px] truncate">{rec.district || '-'}</td>
-                    <td className="text-xs text-slate-500 max-w-[200px] truncate" title={rec.address}>{rec.address || '-'}</td>
-                    <td className="text-xs text-slate-500 max-w-[200px] truncate">{rec.remarks || '-'}</td>
-                    <td className="text-center sticky right-0 z-10 border-l border-[#DDE3EA] sticky-col">
+                    <td className="text-xs text-slate-600">{formatDate(rec.date_of_birth) || 'NA'}</td>
+                    <td className="text-xs text-slate-600">{rec.marital_status || 'NA'}</td>
+                    <td className="text-xs text-slate-600">{rec.religion || 'NA'}</td>
+                    <td className="text-xs text-slate-600 font-mono">{rec.pin_code || 'NA'}</td>
+                    <td className="text-xs text-slate-600">{rec.id_no || 'NA'}</td>
+                    <td className="text-xs text-slate-750 font-bold">{rec.nominee_full_name || 'NA'}</td>
+                    <td className="text-xs text-slate-600">{rec.nominee_gender || 'NA'}</td>
+                    <td className="text-xs text-slate-600">{rec.nominee_date_of_birth || 'NA'}</td>
+                    <td className="text-xs text-slate-650">{rec.nominee_relationship || 'NA'}</td>
+                    <td className="text-xs text-slate-500 max-w-[120px] truncate">{rec.state || 'NA'}</td>
+                    <td className="text-xs text-slate-500 max-w-[120px] truncate">{rec.district || 'NA'}</td>
+                    <td className="text-xs text-slate-500 max-w-[200px] truncate" title={rec.address}>{rec.address || 'NA'}</td>
+                    <td className="text-xs text-slate-500 max-w-[200px] truncate">{rec.remarks || 'NA'}</td>
+                    <td className="text-center flex flex-col justify-center items-center sticky right-0 z-10 border-l border-[#DDE3EA] sticky-col">
+                      <button disabled={rec.isVerified} onClick={() => handleVerifyClick(rec)} className={`px-4 py-1 ${rec.isVerified ? 'bg-emerald-500' : 'bg-[var(--accent-primary)]'} text-white text-xs font-semibold rounded-lg shadow-sm transition-colors`}>
+                        {rec.isVerified ? 'Verified' : 'Verify'}
+                      </button>
                       <div className="inline-flex gap-2">
                         <button 
                           onClick={() => setEditingRecord(rec)}
@@ -976,6 +1081,79 @@ export default function Records() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {verifyModalRecord && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#DDE3EA] max-w-5xl w-full rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-fadeIn">
+            <button
+              type="button"
+              onClick={() => setVerifyModalRecord(null)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-650 flex items-center justify-center"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="border-b border-[#DDE3EA] pb-4 mb-6">
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Identity Verification
+              </span>
+              <h3 className="font-serif text-2xl font-bold text-slate-900 mt-2">
+                Review identity document
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
+              <div className="rounded-2xl border border-[#DDE3EA] bg-[#F8FAFC] p-4 flex items-center justify-center min-h-[360px]">
+                {verifyImageUrl ? (
+                  <img
+                    src={verifyImageUrl}
+                    alt="Identity document"
+                    className="max-h-[360px] w-full object-contain rounded-xl"
+                  />
+                ) : verifyModalRecord.id_link ? (
+                  <div className="text-center text-slate-400 text-sm">
+                    Loading image...
+                  </div>
+                ) : (
+                  <div className="text-center text-slate-400 text-sm">
+                    No identity image available for this record.
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[#DDE3EA] bg-white p-4 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Full Name</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{verifyModalRecord.full_name || verifyModalRecord.aadhar_name || 'Not available'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#DDE3EA] bg-white p-4 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">ID Number</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{verifyModalRecord.id_no || 'Not available'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#DDE3EA] bg-white p-4 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Date of Birth</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{verifyModalRecord.date_of_birth ? formatDate(verifyModalRecord.date_of_birth) : 'Not available'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[#DDE3EA] bg-white p-4 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Address</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{verifyModalRecord.address || 'Not available'}</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmVerification}
+                  disabled={isVerifying || verifyModalRecord.isVerified}
+                  className="mt-6 inline-flex items-center justify-center rounded-xl bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {isVerifying ? 'Verifying...' : verifyModalRecord.isVerified ? 'Already Verified' : 'Verify Record'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
