@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useVaultStore } from '../store/vaultStore';
-import UploadConfirmModal from '../Component/UploadConfirmModal';
+import UploadConfirmModal from '../Component/Uploadconfirmmodal';
 
 const VALID_EXTENSIONS = ['.xlsx', '.xls', '.XLSX', '.XLS', '.Xls', '.Xls', '.XLS', '.XLSX', '.XLSM', '.XLSB', '.XLTX', '.XLTM', '.XLSX', '.XLSM', '.XLSB', '.XLTX', '.XLTM'];
 
