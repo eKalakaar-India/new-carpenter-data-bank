@@ -347,14 +347,14 @@ export default function ManualEntry() {
                       </div> */}
                       <ImageUpload
                         name="id_img"
-                        label="ID Photo"
+                        label="ID Photo (आईडी फ़ोटो)"
                         watch={watch}
                         setValue={setValue}
                         error={errors.id_img}
                       />
                       <div className="flex flex-col">
                         <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                          ID TYPE <span className='text-red-900'>*</span>
+                          ID TYPE (ID का प्रकार) <span className='text-red-900'>*</span>
                         </label>
 
                         <select
@@ -377,7 +377,7 @@ export default function ManualEntry() {
 
                      <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        ID Number <span className='text-red-900'>*</span>
+                        ID Number (आईडी नंबर) <span className='text-red-900'>*</span>
                       </label>
                       <input
                         type="text"
@@ -393,7 +393,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        First Name as per AADHAAR CARD <span className='text-red-900'>*</span>
+                        First Name as per ID CARD (ID कार्ड के अनुसार पहला नाम) <span className='text-red-900'>*</span>
                       </label>
                       <input
                         type="text"
@@ -409,7 +409,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Middle Name as per AADHAAR CARD 
+                        Middle Name as per ID CARD (ID कार्ड के अनुसार बीच का नाम)
                       </label>
                       <input
                         type="text"
@@ -425,7 +425,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Last Name as per AADHAAR CARD <span className='text-red-900'>*</span>
+                        Last Name as per ID CARD (ID कार्ड के अनुसार अंतिम नाम)<span className='text-red-900'>*</span>
                       </label>
                       <input
                         type="text"
@@ -442,7 +442,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Father's Name *
+                        Father's Name (पिता का नाम)*
                       </label>
                       <input
                         type="text"
@@ -458,7 +458,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Mother's Name *
+                        Mother's Name (मां का नाम) *
                       </label>
                       <input
                         type="text"
@@ -474,7 +474,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Guardian's Name 
+                        Guardian's Name (अभिभावक का नाम)
                       </label>
                       <input
                         type="text"
@@ -490,7 +490,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Email 
+                        Email (ईमेल)
                       </label>
                       <input
                         type="email"
@@ -507,7 +507,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Mobile Number <span className='text-red-900'>*</span>
+                        Mobile Number (मोबाइल नंबर) <span className='text-red-900'>*</span>
                       </label>
                       <input
                         type="tel"
@@ -524,7 +524,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Social Category <span className='text-red-900'>*</span>
+                        Social Category (सामाजिक श्रेणी) <span className='text-red-900'>*</span>
                       </label>
 
                       <select
@@ -546,7 +546,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Education Level <span className='text-red-900'>*</span>
+                        Education Level (Education Level) <span className='text-red-900'>*</span>
                       </label>
 
                       <select
@@ -571,7 +571,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Disability <span className='text-red-900'>*</span>
+                        Disability (विकलांगता) <span className='text-red-900'>*</span>
                       </label>
 
                       <select
@@ -591,7 +591,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Employment Status <span className='text-red-900'>*</span>
+                        Employment Status (रोज़गार की स्थिति) <span className='text-red-900'>*</span>
                       </label>
 
                       <select
@@ -612,7 +612,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Date of Birth <span className='text-red-900'>*</span>
+                        Date of Birth (जन्म तिथि) <span className='text-red-900'>*</span>
                       </label>
                       <input
                         type="date"
@@ -629,7 +629,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Age <span className='text-red-900'>*</span>
+                        Age (आयु) <span className='text-red-900'>*</span>
                       </label>
                       <input
                         type="number"
@@ -650,7 +650,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Gender <span className='text-red-900'>*</span>
+                        Gender (लिंग) <span className='text-red-900'>*</span>
                       </label>
                       <select
                         {...register("gender")}
@@ -670,7 +670,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col relative">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        State <span className='text-red-900'>*</span>
+                        State (राज्य) <span className='text-red-900'>*</span>
                       </label>
 
                       <button
@@ -756,7 +756,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col relative">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        District <span className='text-red-900'>*</span>
+                        District (ज़िला) <span className='text-red-900'>*</span>
                       </label>
 
                       <button
@@ -842,7 +842,7 @@ export default function ManualEntry() {
                     
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Pincode <span className='text-red-900'>*</span>
+                        Pincode (पिनकोड) <span className='text-red-900'>*</span>
                       </label>
 
                       <input
@@ -861,7 +861,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Taluka / City / Town <span className='text-red-900'>*</span>
+                        Taluka / City / Town (तालुका / शहर / कस्बा) <span className='text-red-900'>*</span>
                       </label>
 
                       <input
@@ -879,7 +879,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Gram Panchayat
+                        Gram Panchayat (ग्राम पंचायत)
                       </label>
 
                       <input
@@ -897,7 +897,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Village
+                        Village (गाँव)
                       </label>
 
                       <input
@@ -917,7 +917,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col md:col-span-2">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Complete Address <span className='text-red-900'>*</span>
+                        Complete Address (पूर्ण पता) <span className='text-red-900'>*</span>
                       </label>
 
                       <textarea
@@ -936,7 +936,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Marital Status <span className='text-red-900'>*</span>
+                        Marital Status (वैवाहिक स्थिति) <span className='text-red-900'>*</span>
                       </label>
 
                       <select
@@ -957,7 +957,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Religion <span className='text-red-900'>*</span>
+                        Religion (धर्म) <span className='text-red-900'>*</span>
                       </label>
 
                       {/* <input
@@ -989,7 +989,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee First Name <span className='text-red-900'>*</span>
+                        Nominee First Name (नॉमिनी का पहला नाम) <span className='text-red-900'>*</span>
                       </label>
 
                       <input
@@ -1007,7 +1007,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee Middle Name
+                        Nominee Middle Name (नॉमिनी का बीच का नाम)
                       </label>
 
                       <input
@@ -1025,7 +1025,7 @@ export default function ManualEntry() {
                     </div>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee Last Name <span className='text-red-900'>*</span>
+                        Nominee Last Name (नॉमिनी का उपनाम) <span className='text-red-900'>*</span>
                       </label>
 
                       <input
@@ -1044,7 +1044,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee Gender <span className='text-red-900'>*</span>
+                        Nominee Gender (नॉमिनी का लिंग) <span className='text-red-900'>*</span>
                       </label>
 
                       <select
@@ -1066,7 +1066,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee Mobile no. <span className='text-red-900'>*</span>
+                        Nominee Mobile no. (नॉमिनी का मोबाइल नंबर) <span className='text-red-900'>*</span>
                       </label>
 
                       <input
@@ -1085,7 +1085,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee Date of Birth <span className='text-red-900'>*</span>
+                        Nominee Date of Birth (नॉमिनी की जन्म तिथि) <span className='text-red-900'>*</span>
                       </label>
 
                       <input
@@ -1103,7 +1103,7 @@ export default function ManualEntry() {
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
-                        Nominee Relationship <span className='text-red-900'>*</span>
+                        Nominee Relationship (नॉमिनी से संबंध) <span className='text-red-900'>*</span>
                       </label>
 
                       {/* <input
