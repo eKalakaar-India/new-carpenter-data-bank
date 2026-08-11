@@ -322,7 +322,7 @@ export default function MobilizerRecords() {
   };
 
   return (
-    <div className="space-y-6 pb-10 text-slate-800">
+<div className="space-y-6 pb-10 text-slate-800 px-4 sm:px-6 lg:px-8">
       
       {/* Hidden file input for uploads */}
       <input 
@@ -379,7 +379,7 @@ export default function MobilizerRecords() {
       </div>
 
       {/* Dynamic Filters Area (Horizontal Grid above the table) */}
-      <div className="vault-card !overflow-visible grid grid-cols-1 md:grid-cols-3 gap-4 bg-white border-[#DDE3EA]">
+      <div className="vault-card !overflow-visible grid grid-cols-1 md:grid-cols-3 gap-4 bg-white border-[#DDE3EA] w-full max-w-full">
 
         {/* State */}
         <div className="flex flex-col relative">
@@ -565,7 +565,7 @@ export default function MobilizerRecords() {
               onScroll={handleTableScroll}
               className="overflow-x-auto"
             >
-              <table className="vault-table min-w-[1600px]">
+              <table className="vault-table w-full min-w-full md:min-w-[1600px]">
               <thead>
                 <tr>
                   <th className="w-2">Sr No</th>

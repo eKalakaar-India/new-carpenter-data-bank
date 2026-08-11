@@ -259,8 +259,8 @@ export default function ManualEntry() {
   return (
     <>
       {/* <DashboardLayout /> */}
-      <div className="flex-1 overflow-y-auto p-8 relative bg-[#F5F7FA]">
-        <div className="space-y-6 pb-10 text-slate-800">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-8 relative bg-[#F5F7FA]">
+        <div className="space-y-6 pb-10 sm:p-2 text-slate-800">
           <div>
             <h2 className="font-serif text-3xl font-bold tracking-wide text-slate-900">
               Manual <span className="font-normal italic text-[var(--accent-primary)]">Vault Ledger</span>
@@ -271,7 +271,7 @@ export default function ManualEntry() {
           </div>
 
           <div className="flex justify-center w-full">
-            <div className="w-full max-w-3xl space-y-6">
+            <div className="w-full max-w-full xl:max-w-5xl space-y-6">
               {feedback.msg && (
                 <div className={`p-4 rounded-xl border text-xs font-semibold flex items-center gap-3 ${
                   feedback.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
@@ -299,7 +299,7 @@ export default function ManualEntry() {
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
 
                       {/* <div className='flex flex-col md:col-span-2'>
                         <div
@@ -1143,7 +1143,7 @@ export default function ManualEntry() {
                     </div>
                   )}
 
-                  <div className="border-t border-[#DDE3EA] pt-6 flex justify-end gap-3">
+                  <div className="border-t border-[#DDE3EA] pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                     <button type="button" onClick={handleClearDraft} className="btn-frosted text-sm font-semibold flex items-center gap-2">
                       <Undo size={14} />
                       <span>Discard Ledger Form</span>

@@ -37,6 +37,8 @@ export default function MobilizerDashboardLayout() {
     "/ingest": "Smart Ingest",
     "/manual": "Manual Ledger",
     "/history": "Audit Trails",
+    "/mobilizer-form": "Form Entry",
+    "/downloadcertificate": "Download Certificate"
   };
 
   const logOut = async()=>{
@@ -65,9 +67,22 @@ export default function MobilizerDashboardLayout() {
 
   return (
     <div className="flex h-screen bg-[#F5F7FA] overflow-hidden text-slate-800 font-sans">
-      
+
+      {/* Mobile backdrop (shown behind the sidebar when it's open on small screens) */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-900/40 z-40 lg:hidden"
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`sidebar-wood ${sidebarOpen ? 'w-64' : 'w-20'} duration-300 relative border-r border-[#DDE3EA] shrink-0`}>
+      <aside
+        className={`sidebar-wood fixed lg:relative inset-y-0 left-0 z-50 h-full transition-all duration-300 border-r border-[#DDE3EA] shrink-0 w-64 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 ${sidebarOpen ? 'lg:w-64' : 'lg:w-20'}`}
+      >
         {/* Toggle Button */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -77,16 +92,16 @@ export default function MobilizerDashboardLayout() {
         </button>
 
         {/* Sidebar Header / Logo */}
-        <div className="p-6 border-b border-[#DDE3EA] flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg border border-red-500/10">
+        <div className="p-4 lg:p-6 border-b border-[#DDE3EA] flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg border border-red-500/10">
             <Shield className="text-amber-100" size={20} />
           </div>
           {sidebarOpen && (
-            <div className="flex flex-col">
-              <span className="font-serif text-lg font-bold bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent tracking-wide leading-none">
+            <div className="flex flex-col min-w-0">
+              <span className="font-serif text-lg font-bold bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent tracking-wide leading-none truncate">
                 Carp Vault
               </span>
-              <span className="text-[8px] text-[var(--accent-primary)]/80 uppercase tracking-wider font-bold mt-1 leading-tight">
+              <span className="text-[8px] text-[var(--accent-primary)]/80 uppercase tracking-wider font-bold mt-1 leading-tight truncate">
                 Registry & Insurance Vault
               </span>
             </div>
@@ -94,7 +109,7 @@ export default function MobilizerDashboardLayout() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-3 lg:px-4 py-4 lg:py-6 space-y-1.5 lg:space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
 
@@ -103,7 +118,7 @@ export default function MobilizerDashboardLayout() {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 relative group ${
+                  `w-full flex items-center gap-3 lg:gap-4 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all duration-300 relative group ${
                     isActive
                       ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-sm font-semibold"
                       : "text-slate-600 hover:text-slate-900 hover:bg-[#F5F7FA]/60"
@@ -116,13 +131,13 @@ export default function MobilizerDashboardLayout() {
                       size={18}
                       className={
                         isActive
-                          ? "text-[var(--accent-primary)]"
-                          : "text-slate-500 group-hover:text-[var(--accent-primary)] transition-colors"
+                          ? "text-[var(--accent-primary)] shrink-0"
+                          : "text-slate-500 group-hover:text-[var(--accent-primary)] transition-colors shrink-0"
                       }
                     />
 
                     {sidebarOpen && (
-                      <span className="font-medium text-sm">
+                      <span className="font-medium text-sm truncate">
                         {item.label}
                       </span>
                     )}
@@ -138,9 +153,9 @@ export default function MobilizerDashboardLayout() {
         </nav>
 
         {/* Sidebar Footer User Info */}
-        <div className="p-4 border-t border-[#DDE3EA] bg-[#ECEFF4]/60">
+        <div className="p-3 lg:p-4 border-t border-[#DDE3EA] bg-[#ECEFF4]/60">
           <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-lg bg-white border border-[#DDE3EA] flex items-center justify-center text-[var(--accent-primary)] shadow-sm">
+            <div className="h-9 w-9 shrink-0 rounded-lg bg-white border border-[#DDE3EA] flex items-center justify-center text-[var(--accent-primary)] shadow-sm">
               <UserIcon size={16} />
             </div>
             {sidebarOpen && (
@@ -161,29 +176,38 @@ export default function MobilizerDashboardLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+      <main className="flex-1 flex flex-col overflow-hidden relative w-full min-w-0">
         {/* Cinematic Backdrop Glow */}
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-[var(--accent-primary)]/5 rounded-full blur-[150px] -z-10 pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-[300px] sm:w-[400px] lg:w-[500px] h-[300px] sm:h-[400px] lg:h-[500px] bg-[var(--accent-primary)]/5 rounded-full blur-[100px] sm:blur-[130px] lg:blur-[150px] -z-10 pointer-events-none" />
         
         {/* Top Header */}
-        <header className="h-16 border-b border-[#DDE3EA] px-8 flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm font-semibold tracking-wider text-slate-500 uppercase font-sans">
-              System Console / <span className="text-slate-900 font-serif lowercase italic text-base font-normal">
+        <header className="h-16 border-b border-[#DDE3EA] px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-md gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Mobile menu button — opens the sidebar drawer on small screens */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden -ml-1 p-2 rounded-lg text-slate-600 hover:bg-[#F5F7FA] shrink-0"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <h1 className="text-xs sm:text-sm font-semibold tracking-wider text-slate-500 uppercase font-sans truncate min-w-0">
+              <span className="hidden sm:inline">System Console / </span>
+              <span className="text-slate-900 font-serif lowercase italic text-sm sm:text-base font-normal">
                 {pageTitles[location.pathname] || "Default Title"}
               </span>
             </h1>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-[#F5F7FA] border border-[#DDE3EA] rounded-full text-xs font-medium text-slate-700 shadow-sm">
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1 bg-[#F5F7FA] border border-[#DDE3EA] rounded-full text-xs font-medium text-slate-700 shadow-sm">
               <Sparkles size={12} className="text-[var(--accent-primary)] animate-pulse" />
-              <span className="live-glow pr-2">Node-01 Connected</span>
+              <span className="live-glow pr-2 hidden sm:inline">Node-01 Connected</span>
             </div>
           </div>
         </header>
 
         {/* Page Content viewport */}
-        <div className="flex-1 overflow-y-auto p-8 relative bg-[#F5F7FA]">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 relative bg-[#F5F7FA]">
           <Outlet />
         </div>
       </main>

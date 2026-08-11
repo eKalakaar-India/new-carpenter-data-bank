@@ -101,7 +101,7 @@ export default function DashboardLayout() {
     <div className="flex h-screen bg-[#F5F7FA] overflow-hidden text-slate-800 font-sans">
       
       {/* Sidebar */}
-      <aside className={`sidebar-wood ${sidebarOpen ? 'w-64' : 'w-20'} duration-300 relative border-r border-[#DDE3EA] shrink-0`}>
+      <aside className={`sidebar-wood ${sidebarOpen ? 'w-64 sm:w-40' : 'w-20 sm:w-12'}  sm:py-2 sm:px-2 duration-300 relative border-r border-[#DDE3EA] shrink-0`}>
         {/* Toggle Button */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -128,7 +128,7 @@ export default function DashboardLayout() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-6 sm:py-2 sm:px-2 space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
 
