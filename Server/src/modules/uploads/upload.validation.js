@@ -52,7 +52,7 @@ export const participantRowSchema = Joi.object({
   id_type: Joi.string().trim().max(50).allow(null, ''),
   id_no: Joi.string().trim().max(50).allow(null, ''),
   email_id: Joi.string().trim().allow(null, ''),
-  country_code: Joi.string().trim().max(5).default('+91'),
+  country_code: Joi.string().trim().max(5).allow(null, ''),
   // mobile_no: Joi.string().trim().pattern(/^[0-9]{10}$/).allow(null, '').messages({
   //   'string.pattern.base': 'mobile_no must be a 10-digit number',
   // }),
