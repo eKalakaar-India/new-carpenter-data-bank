@@ -101,7 +101,7 @@ export default function DashboardLayout() {
     <div className="flex h-screen bg-[#F5F7FA] overflow-hidden text-slate-800 font-sans">
       
       {/* Sidebar */}
-      <aside className={`sidebar-wood ${sidebarOpen ? 'w-64 sm:w-40' : 'w-20 sm:w-12'}  sm:py-2 sm:px-2 duration-300 relative border-r border-[#DDE3EA] shrink-0`}>
+      <aside className={`sidebar-wood ${sidebarOpen ? 'w-64' : 'w-20'} duration-300 relative border-r border-[#DDE3EA] shrink-0`}>
         {/* Toggle Button */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -112,7 +112,7 @@ export default function DashboardLayout() {
 
         {/* Sidebar Header / Logo */}
         <div className="p-6 border-b border-[#DDE3EA] flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg border border-red-500/10">
+          <div className="h-10 w-10 p-1 rounded-xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg border border-red-500/10">
             <Shield className="text-amber-100" size={20} />
           </div>
           {sidebarOpen && (
