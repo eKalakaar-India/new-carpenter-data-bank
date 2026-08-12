@@ -95,15 +95,15 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
     const excelRowNumber = index + 2;
 
     const normalized = normalizeRow(rawRow);
-    const { error, value } = validateParticipantRow(normalized);
+    // const { error, value } = validateParticipantRow(normalized);
 
-    if (error) {
-        rowErrors.push({
-        row: excelRowNumber,
-        messages: error.details.map((detail) => detail.message),
-        });
-        continue;
-    }
+    // if (error) {
+    //     rowErrors.push({
+    //     row: excelRowNumber,
+    //     messages: error.details.map((detail) => detail.message),
+    //     });
+    //     continue;
+    // }
 
     const { data: sequence, error: supaError } = await supabase.rpc(
         "get_next_candidate_sequence"
@@ -119,7 +119,7 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
     const candidateId = await generateCandidateId(sequence);
 
     validRows.push({
-        ...value,
+        ...normalized,
         candidate_id: candidateId,
         updated_by: updatedBy,
         created_at: timestamp,
@@ -132,6 +132,7 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
 
   for (let i = 0; i < validRows.length; i += INSERT_CHUNK_SIZE) {
     const chunk = validRows.slice(i, i + INSERT_CHUNK_SIZE);
+    console.log(i)
     try {
       const inserted = await participantsRepository.bulkInsertParticipants(chunk);
       insertedCount += inserted.length;
