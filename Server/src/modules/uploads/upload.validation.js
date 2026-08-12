@@ -53,7 +53,10 @@ export const participantRowSchema = Joi.object({
   id_no: Joi.string().trim().max(50).allow(null, ''),
   email_id: Joi.string().trim().email({ tlds: false }).allow(null, ''),
   country_code: Joi.string().trim().max(5).default('+91'),
-  mobile_no: Joi.string().trim().pattern(/^[0-9]{10}$/).allow(null, '').messages({
+  // mobile_no: Joi.string().trim().pattern(/^[0-9]{10}$/).allow(null, '').messages({
+  //   'string.pattern.base': 'mobile_no must be a 10-digit number',
+  // }),
+  mobile_no: Joi.string().trim().allow(null, '').messages({
     'string.pattern.base': 'mobile_no must be a 10-digit number',
   }),
 
@@ -68,9 +71,12 @@ export const participantRowSchema = Joi.object({
   nominee_gender: Joi.string().trim().valid(...GENDER_OPTIONS).allow(null, ''),
   nominee_date_of_birth: Joi.date().allow(null, ''),
   nominee_relationship: Joi.string().trim().max(50).allow(null, ''),
-  nominee_mobile_no: Joi.string().trim().pattern(/^[0-9]{10}$/).allow(null, '').messages({
+  nominee_mobile_no: Joi.string().trim().allow(null, '').messages({
     'string.pattern.base': 'nominee_mobile_no must be a 10-digit number',
   }),
+  // nominee_mobile_no: Joi.string().trim().pattern(/^[0-9]{10}$/).allow(null, '').messages({
+  //   'string.pattern.base': 'nominee_mobile_no must be a 10-digit number',
+  // }),
 
   mobiliser_id: Joi.string().trim().max(100).allow(null, ''),
   candidate_id: Joi.string().trim().max(100).allow(null, ''),
