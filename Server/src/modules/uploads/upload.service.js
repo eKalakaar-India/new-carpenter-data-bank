@@ -8,7 +8,7 @@ import { logger } from '../../utils/logger.js';
 import { supabase } from '../../config/supabase.js';
 
 
-const INSERT_CHUNK_SIZE = 500;
+const INSERT_CHUNK_SIZE = 600;
 
 /**
  * Reads the first sheet of a workbook buffer into an array of plain
@@ -122,7 +122,6 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
         ...normalized,
         // candidate_id: candidateId,
         updated_by: updatedBy,
-        created_at: timestamp,
         updated_at: timestamp,
     });
   }
@@ -132,7 +131,7 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
 
   for (let i = 0; i < validRows.length; i += INSERT_CHUNK_SIZE) {
     const chunk = validRows.slice(i, i + INSERT_CHUNK_SIZE);
-    console.log(i)
+    // console.log(i)
     try {
       const inserted = await participantsRepository.bulkInsertParticipants(chunk);
       insertedCount += inserted.length;
