@@ -133,8 +133,9 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
     const chunk = validRows.slice(i, i + INSERT_CHUNK_SIZE);
     // console.log(i)
     try {
-      const inserted = await participantsRepository.bulkInsertParticipants(chunk);
-      insertedCount += inserted.length;
+      const insertedCountForChunk = await participantsRepository.bulkInsertParticipants(chunk);
+
+      insertedCount += insertedCountForChunk;
     } catch (err) {
       insertErrors.push({
         rows: `${i + 1}-${Math.min(i + INSERT_CHUNK_SIZE, validRows.length)}`,

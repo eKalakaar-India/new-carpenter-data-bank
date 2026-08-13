@@ -8,15 +8,24 @@ const TABLE_NAME = 'participants';
  * @returns {Promise<Object[]>} the rows as inserted (including generated ids)
  */
 async function bulkInsertParticipants(rows) {
-  if (!rows.length) return [];
-
-  const { data, error } = await supabase.from(TABLE_NAME).insert(rows);
-
-  if (error) {
-    throw new Error(`Supabase insert failed: ${error.message}`);
+  if (!rows || rows.length === 0) {
+    return 0;
   }
 
-  return data;
+  const { error } = await supabase
+    .from(TABLE_NAME)
+    .insert(rows);
+
+  if (error) {
+    throw new Error(
+      `Supabase insert failed: ${error.message}`
+    );
+  }
+
+  // Since we are not using .select(),
+  // Supabase does not return inserted rows.
+  // We already know how many rows were inserted.
+  return rows.length;
 }
 
 
