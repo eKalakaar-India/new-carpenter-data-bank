@@ -10,7 +10,7 @@ const TABLE_NAME = 'participants';
 async function bulkInsertParticipants(rows) {
   if (!rows.length) return [];
 
-  const { data, error } = await supabase.from(TABLE_NAME).insert(rows).select();
+  const { data, error } = await supabase.from(TABLE_NAME).insert(rows);
 
   if (error) {
     throw new Error(`Supabase insert failed: ${error.message}`);
