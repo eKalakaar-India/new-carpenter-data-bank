@@ -105,22 +105,22 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
     //     continue;
     // }
 
-    const { data: sequence, error: supaError } = await supabase.rpc(
-        "get_next_candidate_sequence"
-    );
+    // const { data: sequence, error: supaError } = await supabase.rpc(
+    //     "get_next_candidate_sequence"
+    // );
 
-    if (supaError) {
-        throw new ApiError(
-        HTTP_STATUS.BAD_REQUEST,
-        "Unable to create Candidate Sequence"
-        );
-    }
+    // if (supaError) {
+    //     throw new ApiError(
+    //     HTTP_STATUS.BAD_REQUEST,
+    //     "Unable to create Candidate Sequence"
+    //     );
+    // }
 
-    const candidateId = await generateCandidateId(sequence);
+    // const candidateId = await generateCandidateId(sequence);
 
     validRows.push({
         ...normalized,
-        candidate_id: candidateId,
+        // candidate_id: candidateId,
         updated_by: updatedBy,
         created_at: timestamp,
         updated_at: timestamp,
