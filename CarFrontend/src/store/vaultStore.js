@@ -98,10 +98,10 @@ export const useVaultStore = create((set, get) => ({
     }
   },
 
-  signup: async (name, email, password, role) => {
+  signup: async (name, email, phone_no, password, role) => {
     set({ authLoading: true, authError: null });
     try {
-      await axios.post('/api/auth/register', { name, email, password, role });
+      await axios.post('/api/auth/register', { name, email, phone_no, password, role });
       // return get().login(email, password);
 
     } catch (error) {
@@ -392,7 +392,7 @@ export const useVaultStore = create((set, get) => ({
     set({ analyticsLoading: true });
     try {
       const response = await axios.get('/api/dashboard', { params: { period } });
-      console.log('Analytics response:', response.data.data);
+      console.log('Analytics response from /api/dashboard:', response.data.data);
       set({ analyticsData: response.data.data, analyticsLoading: false });
     } catch (error) {
       set({ analyticsLoading: false });

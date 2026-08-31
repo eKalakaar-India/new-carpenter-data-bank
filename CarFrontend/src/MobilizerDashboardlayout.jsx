@@ -99,10 +99,10 @@ export default function MobilizerDashboardLayout() {
           {sidebarOpen && (
             <div className="flex flex-col min-w-0">
               <span className="font-serif text-lg font-bold bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent tracking-wide leading-none truncate">
-                Carp Vault
+                Carpenter PMT
               </span>
               <span className="text-[8px] text-[var(--accent-primary)]/80 uppercase tracking-wider font-bold mt-1 leading-tight truncate">
-                Registry & Insurance Vault
+                Data Management Console
               </span>
             </div>
           )}
@@ -201,7 +201,7 @@ export default function MobilizerDashboardLayout() {
           <div className="flex items-center gap-4 shrink-0">
             <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1 bg-[#F5F7FA] border border-[#DDE3EA] rounded-full text-xs font-medium text-slate-700 shadow-sm">
               <Sparkles size={12} className="text-[var(--accent-primary)] animate-pulse" />
-              <span className="live-glow pr-2 hidden sm:inline">Node-01 Connected</span>
+              <span className="live-glow pr-2 hidden sm:inline">LIVE DATA FEED</span>
             </div>
           </div>
         </header>

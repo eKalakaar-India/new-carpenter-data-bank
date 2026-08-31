@@ -9,6 +9,8 @@ export const exportUsersToExcel = (users) => {
   const worksheet = XLSX.utils.json_to_sheet(
     users.map((user, index) => ({
       "Sr No": index + 1,
+      "Enrollment Date":user.created_at,
+      "System ID" : user.id,
       "Salutation":user.gender === "MALE" ? "Mr." : "Mrs.",
       "First Name": user.first_name,
       "Middle Name":user.middle_name,
@@ -37,6 +39,7 @@ export const exportUsersToExcel = (users) => {
       "MobileNo":user.mobile_no,
       "Education Level":user.education_level,
       "Employed":user.employed ? "Yes" : "No",
+      "Employment Status":user.employment_status,
       "Training Date":user?.batch_data?.workshop_date || 'NA',
       "Nominee First Name":user.nominee_first_name,
       "Nominee Middle Name":user.nominee_middle_name,
@@ -47,10 +50,13 @@ export const exportUsersToExcel = (users) => {
       "Nominee Relationship":user.nominee_relationship,
       "Nominee Mobile No":user.nominee_mobile_no,
       "Remarks":user.remarks,
-      "ID":user.id,
+      "Mobiliser Name":user.mobiliser_data.name,
+      "Mobiliser Mobile No.": user.mobiliser_data.phone_no,
+      "Candidate ID":user.candidate_id,
+      "Certificate ID":"",
       "Certificate Link":user.certificate_link,
-      "Insurance:Mswasth Link":user.insurance_links.MSwasth,
-      "Insurance:Niva Link":user.insurance_links.niva
+      "Insurance: Mswasth Link":user.insurance_links.MSwasth,
+      "Insurance: Niva Link":user.insurance_links.niva
     }))
   );
 

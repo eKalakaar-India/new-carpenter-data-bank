@@ -118,10 +118,10 @@ export default function DashboardLayout() {
           {sidebarOpen && (
             <div className="flex flex-col">
               <span className="font-serif text-lg font-bold bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent tracking-wide leading-none">
-                Carp Vault
+                Carpenter PMT
               </span>
               <span className="text-[8px] text-[var(--accent-primary)]/80 uppercase tracking-wider font-bold mt-1 leading-tight">
-                Registry & Insurance Vault
+                Data Management Console
               </span>
             </div>
           )}
@@ -211,7 +211,7 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1 bg-[#F5F7FA] border border-[#DDE3EA] rounded-full text-xs font-medium text-slate-700 shadow-sm">
               <Sparkles size={12} className="text-[var(--accent-primary)] animate-pulse" />
-              <span className="live-glow pr-2">Node-01 Connected</span>
+              <span className="live-glow pr-2">LIVE DATA FEED</span>
             </div>
           </div>
         </header>

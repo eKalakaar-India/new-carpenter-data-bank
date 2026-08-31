@@ -595,6 +595,21 @@ export default function ManualEntry() {
                       </label>
 
                       <select
+                        {...register("employment_status")}
+                        className="bg-[#F5F7FA] border border-[#DDE3EA] text-slate-800 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--accent-primary)]/80 focus:ring-1 focus:ring-[var(--accent-primary)]/20 font-semibold"
+                      >
+                        <option value="">Select Status</option>
+                        <option value="Self Employed">Self Employed </option>
+                        <option value="Wage Employed">Wage Employed </option>
+                        <option value="Unemployed">Unemployed</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
+                        Employed (रोज़गार की स्थिति) <span className='text-red-900'>*</span>
+                      </label>
+
+                      <select
                         {...register("employed")}
                         className="bg-[#F5F7FA] border border-[#DDE3EA] text-slate-800 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--accent-primary)]/80 focus:ring-1 focus:ring-[var(--accent-primary)]/20 font-semibold"
                       >

@@ -9,7 +9,7 @@ class DashboardService {
   async getDashboardAnalytics(period = 'monthly') {
     const carpenters = await this.repository.getCarpenters();
     const recentRegistrations = await this.repository.getRecentRegistrations(10);
-
+  
     const totalCarpenters = carpenters.length;
     const activeCarpenters = carpenters.filter((carpenter) => this.isTrainingCompleted(carpenter)).length;
     const inactiveCarpenters = totalCarpenters - activeCarpenters;
@@ -35,6 +35,7 @@ class DashboardService {
     const scopedForPeriod = carpenters;
 
     logger.info('Dashboard analytics accessed');
+    console.log()
 
     return {
       general: {
@@ -84,6 +85,7 @@ class DashboardService {
         registrations: this.buildRegistrationAnalytics(scopedForPeriod),
         insurance: this.buildInsuranceAnalytics(scopedForPeriod),
         certificates: this.buildCertificateAnalytics(scopedForPeriod),
+        training: this.buildTrainingAnalytics(scopedForPeriod)
       },
       timelineAnalytics: this.buildTimelineAnalytics(scopedForPeriod),
       recentActivities: recentRegistrations.slice(0, 10),
@@ -118,12 +120,20 @@ class DashboardService {
     return this.topItems(citywiseCount, Object.keys(citywiseCount).length);
   }
 
-  async isCertificateCompleted(carpenter){
+  isCertificateCompleted(carpenter){
     return carpenter.has_certificate === true
   }
 
   isTrainingCompleted(carpenter) {
-    return carpenter?.batch_data?.status === "COMPLETED";
+    const hasCertificate = carpenter.has_certificate === true || String(carpenter.has_certificate).toUpperCase() === "TRUE";
+
+    const batchCompleted = Array.isArray(carpenter.batch_data) ? carpenter.batch_data.some(
+          (batch) =>
+            String(batch?.status).trim().toUpperCase() === "COMPLETED"
+        )
+      : String(carpenter.batch_data?.status).trim().toUpperCase() === "COMPLETED";
+
+    return hasCertificate || batchCompleted;
   }
 
   isInsured(carpenter) {
@@ -155,36 +165,165 @@ class DashboardService {
     return year === currentYear;
   }
 
+  // buildTimelineAnalytics(items) {
+  //   const currentYear = new Date().getFullYear();
+  //   const monthNames = [`Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec`];
+  //   const monthly = {
+  //     registrations: [],
+  //     insurance: [],
+  //     certificates: [],
+  //     training: []
+  //   };
+
+  //   let registrationsCount = 0;
+  //   let insuranceCount = 0;
+  //   let certificatesCount = 0;
+  //   let trainingCount = 0;
+
+  //   monthNames.forEach((name, index) => {
+  //     const monthIndex = index + 1;
+  //     const monthItems = items.filter((item) => {
+  //       const date = item.created_at ? new Date(item.created_at) : null;
+  //       return date && date.getFullYear() === currentYear && date.getMonth() + 1 === monthIndex;
+  //     });
+
+  //     registrationsCount += monthItems.length;
+  //     insuranceCount += monthItems.filter((item) => this.isInsured(item)).length;
+  //     certificatesCount += monthItems.filter((item) => this.isCertificateCompleted(item)).length;
+  //     trainingCount += monthItems.filter((item) => this.isTrainingCompleted(item)).length;
+  //     monthly.registrations.push({ name, value: registrationsCount });
+  //     monthly.insurance.push({ name, value: insuranceCount });
+  //     monthly.certificates.push({ name, value: certificatesCount });
+  //     monthly.training.push({ name, value: trainingCount });
+  //   });
+
+  //   return { monthly };
+  // }
+
   buildTimelineAnalytics(items) {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = new Date().getFullYear();
-    const monthly = {
-      registrations: [],
-      insurance: [],
-      certificates: [],
-    };
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
 
-    let registrationsCount = 0;
-    let insuranceCount = 0;
-    let certificatesCount = 0;
+    if (!Array.isArray(items) || items.length === 0) {
+      return {
+        years: [],
+        yearly: {}
+      };
+    }
 
-    monthNames.forEach((name, index) => {
-      const monthIndex = index + 1;
-      const monthItems = items.filter((item) => {
-        const date = item.created_at ? new Date(item.created_at) : null;
-        return date && date.getFullYear() === currentYear && date.getMonth() + 1 === monthIndex;
+    const years = [
+      ...new Set(
+        items
+          .map((item) => {
+            if (!item.created_at) return null;
+
+            const date = new Date(item.created_at);
+
+            if (Number.isNaN(date.getTime())) return null;
+
+            return date.getFullYear();
+          })
+          .filter((year) => year !== null)
+      )
+    ].sort((a, b) => a - b);
+
+    const yearly = {};
+
+    years.forEach((year) => {
+      const monthly = {
+        registrations: [],
+        insurance: [],
+        certificates: [],
+        training: []
+      };
+
+      const totals = {
+        registrations: 0,
+        insurance: 0,
+        certificates: 0,
+        training: 0
+      };
+
+      monthNames.forEach((name, index) => {
+        const monthIndex = index + 1;
+
+        const monthItems = items.filter((item) => {
+          if (!item.created_at) return false;
+
+          const date = new Date(item.created_at);
+
+          if (Number.isNaN(date.getTime())) return false;
+
+          return (
+            date.getFullYear() === year &&
+            date.getMonth() + 1 === monthIndex
+          );
+        });
+
+        const registrationsCount = monthItems.length;
+
+        const insuranceCount = monthItems.filter((item) =>
+          this.isInsured(item)
+        ).length;
+
+        const certificatesCount = monthItems.filter((item) =>
+          this.isCertificateCompleted(item)
+        ).length;
+
+        const trainingCount = monthItems.filter((item) =>
+          this.isTrainingCompleted(item)
+        ).length;
+
+        // Monthly data
+        monthly.registrations.push({
+          name,
+          value: registrationsCount
+        });
+
+        monthly.insurance.push({
+          name,
+          value: insuranceCount
+        });
+
+        monthly.certificates.push({
+          name,
+          value: certificatesCount
+        });
+
+        monthly.training.push({
+          name,
+          value: trainingCount
+        });
+
+        // Yearly cumulative totals
+        totals.registrations += registrationsCount;
+        totals.insurance += insuranceCount;
+        totals.certificates += certificatesCount;
+        totals.training += trainingCount;
       });
 
-      registrationsCount += monthItems.length;
-      insuranceCount += monthItems.filter((item) => this.isInsured(item)).length;
-      certificatesCount += monthItems.filter((item) => this.isCertificateCompleted(item)).length;
-
-      monthly.registrations.push({ name, value: registrationsCount });
-      monthly.insurance.push({ name, value: insuranceCount });
-      monthly.certificates.push({ name, value: certificatesCount });
+      yearly[year] = {
+        monthly,
+        totals
+      };
     });
 
-    return { monthly };
+    return {
+      years,
+      yearly
+    };
   }
 
   buildRegistrationAnalytics(items) {
@@ -196,6 +335,50 @@ class DashboardService {
       }
       acc[state].total += 1;
       acc[state].districts[district] = (acc[state].districts[district] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  buildTrainingAnalytics(items) {
+    return items.reduce((acc, carpenter) => {
+      const state = carpenter.state || "UNKNOWN";
+      const district = carpenter.district || "UNKNOWN";
+
+      const isCompleted = carpenter.has_certificate === true || carpenter.batch_data?.status === "COMPLETED";
+
+      if (!acc[state]) {
+        acc[state] = {
+          total: 0,
+          completed: 0,
+          pending: 0,
+          districts: {},
+        };
+      }
+
+      acc[state].total += 1;
+
+      if (isCompleted) {
+        acc[state].completed += 1;
+      } else {
+        acc[state].pending += 1;
+      }
+
+      if (!acc[state].districts[district]) {
+        acc[state].districts[district] = {
+          total: 0,
+          completed: 0,
+          pending: 0,
+        };
+      }
+
+      acc[state].districts[district].total += 1;
+
+      if (isCompleted) {
+        acc[state].districts[district].completed += 1;
+      } else {
+        acc[state].districts[district].pending += 1;
+      }
+
       return acc;
     }, {});
   }

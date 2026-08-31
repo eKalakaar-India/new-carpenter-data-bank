@@ -6,6 +6,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
   Legend,
   AreaChart,
   Area,
@@ -46,10 +48,10 @@ import { useNavigate } from 'react-router-dom';
 // independently via dashboardService.getDashboardStats(), per the required
 // backend contract. Icons/descriptions mirror the original stat cards.
 const STAT_CARD_CONFIG = [
-  { key: 'totalCarpenters', label: 'Mobilization', icon: Users, desc: 'Historical Carpenter Count' },
+  { key: 'totalCarpenters', label: 'Registration', icon: Users, desc: 'Historical Carpenter Count' },
+  { key: 'completedTraining', label: 'Trained', icon: Building, desc: 'Functional Registration' },
   { key: 'totalInsurance', label: 'Insurance', icon: FileSpreadsheet, desc: 'Processed Insurance' },
   { key: 'totalCertificates', label: 'Certificates', icon: FileCheck2, desc: 'Issued Certificates on File' },
-  { key: 'completedTraining', label: 'Trained', icon: Building, desc: 'Functional Registration' },
 ];
 
 const COLORS = [
@@ -73,6 +75,7 @@ export default function Dashboard() {
   const [analyticsType, setAnalyticsType] = useState('registrations');
   const [timeline, setTimeline] = useState('monthly');
   const [viewMode, setViewMode] = useState('monthly');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const navigate = useNavigate();
 
@@ -87,6 +90,16 @@ export default function Dashboard() {
   useEffect(() => {
     setViewMode(timeline === 'monthly' ? 'monthly' : 'statewise');
   }, [timeline]);
+
+  const availableYears =  analyticsData?.timelineAnalytics?.years || [];
+  const selectedYearData =  analyticsData?.timelineAnalytics?.yearly?.[selectedYear];
+  const yearlyTotals = selectedYearData?.totals || {};
+
+  useEffect(() => {
+    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[availableYears.length - 1]);
+    }
+  }, [availableYears, selectedYear]);
 
   // --- Section 1: Statistics Cards -----------------------------------
   // dashboard.service.js's single /api/dashboard endpoint already returns
@@ -146,11 +159,12 @@ export default function Dashboard() {
   }));
 
   const stateChartData = Object.entries(demographics.statewiseCount)
-    .slice(0, 5)
-    .map(([name, count]) => ({
-      name,
-      count,
-    }));
+  .sort(([, countA], [, countB]) => countB - countA)
+  .slice(0, 5)
+  .map(([name, count]) => ({
+    name,
+    count,
+  }));
 
   const reliabilityChartData = Object.entries(training).map(
     ([name, count]) => ({
@@ -209,6 +223,7 @@ export default function Dashboard() {
             <option value="registrations">Registrations</option>
             <option value="insurance">Insurance</option>
             <option value="certificates">Certificates</option>
+            <option value="training">Trained</option>
           </select>
         </label>
 
@@ -230,12 +245,18 @@ export default function Dashboard() {
           <div className="flex flex-col gap-3 mb-4">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-2">
               <TrendingUp size={14} className="text-[var(--accent-primary)]" />
-              <span>{analyticsType.charAt(0).toUpperCase() + analyticsType.slice(1)} Trend</span>
+              {/* <span>{analyticsType.charAt(0).toUpperCase() + analyticsType.slice(1)}</span> */}
+              <div className="ml-2 flex items-center gap-1 w-full justify-between">
+                <p className="text-sm text-[var(--accent-primary)] font-semibold">
+                  Total Yearly {analyticsType}: {yearlyTotals[analyticsType]}
+                </p>
+              </div>
             </h3>
+
           </div>
           <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={analyticsData?.timelineAnalytics?.monthly?.[analyticsType] || []}>
+            {/* <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={analyticsData?.timelineAnalytics?.yearly[year][analyticsType] || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ECEFF4" />
                 <XAxis dataKey="name" stroke="#64748B" fontSize={10} />
                 <YAxis stroke="#64748B" fontSize={10} allowDecimals={false} />
@@ -245,7 +266,117 @@ export default function Dashboard() {
                 />
                 <Area type="monotone" dataKey="value" stroke="#851C2C" fill="#851C2C" fillOpacity={0.2} />
               </AreaChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer> */}
+
+            <div className="w-full h-full flex flex-col">
+
+              {/* Year navigation */}
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentIndex = availableYears.indexOf(selectedYear);
+
+                    if (currentIndex > 0) {
+                      setSelectedYear(availableYears[currentIndex - 1]);
+                    }
+                  }}
+                  disabled={
+                    availableYears.length === 0 ||
+                    availableYears.indexOf(selectedYear) === 0
+                  }
+                  className="px-3 py-1 rounded-md border border-slate-200 text-sm disabled:opacity-40"
+                >
+                  ←
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {availableYears.map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => setSelectedYear(year)}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        selectedYear === year
+                          ? "bg-[#851C2C] text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentIndex = availableYears.indexOf(selectedYear);
+
+                    if (
+                      currentIndex !== -1 &&
+                      currentIndex < availableYears.length - 1
+                    ) {
+                      setSelectedYear(availableYears[currentIndex + 1]);
+                    }
+                  }}
+                  disabled={
+                    availableYears.length === 0 ||
+                    availableYears.indexOf(selectedYear) ===
+                      availableYears.length - 1
+                  }
+                  className="px-3 py-1 rounded-md border border-slate-200 text-sm disabled:opacity-40"
+                >
+                  →
+                </button>
+              </div>
+
+              {/* Chart */}
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={
+                      analyticsData?.timelineAnalytics?.yearly?.[selectedYear]?.monthly?.[analyticsType] || []
+                    }
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ECEFF4" />
+
+                    <XAxis
+                      dataKey="name"
+                      stroke="#64748B"
+                      fontSize={10}
+                    />
+
+                    <YAxis
+                      stroke="#64748B"
+                      fontSize={10}
+                      allowDecimals={false}
+                    />
+
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#FFFFFF',
+                        borderColor: '#DDE3EA',
+                        color: '#1E293B',
+                        borderRadius: '12px'
+                      }}
+                      itemStyle={{
+                        color: 'var(--accent-primary)'
+                      }}
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#851C2C"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+            </div>
           </div>
         </div>
       ) : (

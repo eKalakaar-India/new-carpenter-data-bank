@@ -176,9 +176,11 @@ export default function Records() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(records.map(r => r.id));
+      setSelectedIds(records.map((record) => record.id));
+      setSelectedRecords(records);
     } else {
       setSelectedIds([]);
+      setSelectedRecords([]);
     }
   };
 
@@ -635,7 +637,7 @@ export default function Records() {
               onScroll={handleTableScroll}
               className="overflow-x-auto"
             >
-              <table className="vault-table min-w-[5200px]">
+              <table className="vault-table min-w-[2500px]">
               <thead>
                 <tr>
                   <th className="w-12 text-center sticky left-0 bg-[#E8ECF2] z-20 border-r border-[#DDE3EA]">

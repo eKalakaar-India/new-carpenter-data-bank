@@ -89,7 +89,7 @@ export default function Ingest( isProjectHead ) {
 
   const onSubmit = async (data) => {
     // console.log(user.role);
-     await signup(data.name, data.email, data.password, data.role)
+     await signup(data.name, data.email, data.phone_no, data.password, data.role)
     // await api.post("/users", data);
 
     reset();
@@ -308,6 +308,31 @@ export default function Ingest( isProjectHead ) {
                     {errors.email && (
                       <p className="mt-1 text-xs text-red-500">
                         {errors.email.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Phone Number
+                    </label>
+
+                    <input
+                      type="tel"
+                      placeholder="123-456-7890"
+                      {...register("phone_no")}
+                      className={`w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm transition focus:outline-none focus:ring-2 ${
+                        errors.phone_no
+                          ? "border-red-500"
+                          : "border-slate-300"
+                      }`}
+                      style={{
+                        "--tw-ring-color": COLORS.sky,
+                      }}
+                    />
+
+                    {errors.phone_no && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {errors.phone_no.message}
                       </p>
                     )}
                   </div>

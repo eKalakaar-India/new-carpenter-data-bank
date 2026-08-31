@@ -57,6 +57,7 @@ export const userProfileSchema = z.object({
   // Education & Employment
   education_level: z.string().trim().max(100).nullable().optional(),
   employed: z.string().nullable().optional(),
+  employment_status: z.string().nullable().optional(),
 
   // Nominee Details
   nominee_first_name: z.string().trim().min(1, "Nominee first name is required").max(100),

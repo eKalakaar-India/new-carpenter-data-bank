@@ -47,11 +47,11 @@ export default function Login() {
               <Shield className="text-amber-100" size={28} />
             </div>
             <h2 className="font-serif text-3xl font-bold text-slate-800 tracking-wider">
-              Carpenter Vault
+              Carpenter PMT
             </h2>
-            <p className="text-[var(--accent-primary)] text-xs font-bold uppercase tracking-widest mt-2">
+            {/* <p className="text-[var(--accent-primary)] text-xs font-bold uppercase tracking-widest mt-2">
               Registry & Insurance Ledger
-            </p>
+            </p> */}
           </div>
 
           {/* <div className='w-full flex gap-4'>
@@ -64,7 +64,7 @@ export default function Login() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Secure Email Address</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Email Address</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400"><Mail size={16} /></span>
                 <input
@@ -79,7 +79,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Secure Passcode</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Password</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400"><Lock size={16} /></span>
                 <input
@@ -115,7 +115,7 @@ export default function Login() {
               ) : (
                 <>
                   <ShieldCheck size={16} />
-                  <span>Decrypt Ledger Vault</span>
+                  <span>PMT Login</span>
                 </>
               )}
             </button>

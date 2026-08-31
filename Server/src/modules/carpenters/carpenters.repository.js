@@ -113,7 +113,9 @@ class CarpentersRepository {
         workshop_date,
         full_address,
         status
-      )`, { count: 'exact' }).range(from, to);
+      ),
+      mobiliser_data:platform_users!fk_candidate_mobiliser(name, email, phone_no)
+      `, { count: 'exact' }).range(from, to);
 
     Object.entries(filters).forEach(([key, value]) => {
       if (value) query = query.eq(key, value);

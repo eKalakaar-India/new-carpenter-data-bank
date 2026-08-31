@@ -7,6 +7,8 @@ export const userSchema = z.object({
 
     email: z.email().min(1, "Email is required"),
 
+    phone_no: z.string().min(10, "Phone number is required").max(10, "Phone number must be 10 digits"),
+
     role: z.string()
 
 });

@@ -15,7 +15,7 @@ export default function StatCard({ label, value, icon: Icon, desc, loading = fal
     <div className="vault-card group hover:scale-[1.03] hover:shadow-lg duration-300 transition-all border border-[#DDE3EA] hover:border-[var(--accent-primary)]/20">
       <div className="flex justify-between items-start mb-4">
         <div className="flex flex-col min-w-0">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</span>
 
           {loading ? (
             <span className="mt-2 h-8 w-20 rounded-md bg-[#ECEFF4] animate-pulse" aria-label="Loading" />
