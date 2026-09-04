@@ -119,6 +119,7 @@ class DashboardService {
     const citywiseCount = this.groupBy(scoped, 'city');
     return this.topItems(citywiseCount, Object.keys(citywiseCount).length);
   }
+  
 
   isCertificateCompleted(carpenter){
     return carpenter.has_certificate === true
@@ -165,83 +166,45 @@ class DashboardService {
     return year === currentYear;
   }
 
-  // buildTimelineAnalytics(items) {
-  //   const currentYear = new Date().getFullYear();
-  //   const monthNames = [`Jan`, `Feb`, `Mar`, `Apr`, `May`, `Jun`, `Jul`, `Aug`, `Sep`, `Oct`, `Nov`, `Dec`];
-  //   const monthly = {
-  //     registrations: [],
-  //     insurance: [],
-  //     certificates: [],
-  //     training: []
-  //   };
-
-  //   let registrationsCount = 0;
-  //   let insuranceCount = 0;
-  //   let certificatesCount = 0;
-  //   let trainingCount = 0;
-
-  //   monthNames.forEach((name, index) => {
-  //     const monthIndex = index + 1;
-  //     const monthItems = items.filter((item) => {
-  //       const date = item.created_at ? new Date(item.created_at) : null;
-  //       return date && date.getFullYear() === currentYear && date.getMonth() + 1 === monthIndex;
-  //     });
-
-  //     registrationsCount += monthItems.length;
-  //     insuranceCount += monthItems.filter((item) => this.isInsured(item)).length;
-  //     certificatesCount += monthItems.filter((item) => this.isCertificateCompleted(item)).length;
-  //     trainingCount += monthItems.filter((item) => this.isTrainingCompleted(item)).length;
-  //     monthly.registrations.push({ name, value: registrationsCount });
-  //     monthly.insurance.push({ name, value: insuranceCount });
-  //     monthly.certificates.push({ name, value: certificatesCount });
-  //     monthly.training.push({ name, value: trainingCount });
-  //   });
-
-  //   return { monthly };
-  // }
-
   buildTimelineAnalytics(items) {
-    const monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
+    const financialYearMonths = [
+      { name: 'Apr', month: 4 },
+      { name: 'May', month: 5 },
+      { name: 'Jun', month: 6 },
+      { name: 'Jul', month: 7 },
+      { name: 'Aug', month: 8 },
+      { name: 'Sep', month: 9 },
+      { name: 'Oct', month: 10 },
+      { name: 'Nov', month: 11 },
+      { name: 'Dec', month: 12 },
+      { name: 'Jan', month: 1 },
+      { name: 'Feb', month: 2 },
+      { name: 'Mar', month: 3 }
     ];
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return {
-        years: [],
-        yearly: {}
-      };
+    const getFinancialYearStart = (date) =>
+      date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
+
+    const formatFinancialYear = (startYear) =>
+      `${startYear}-${String(startYear + 1).slice(-2)}`;
+
+    const validItems = Array.isArray(items)
+      ? items
+        .map((item) => ({ item, date: item.created_at ? new Date(item.created_at) : null }))
+        .filter(({ date }) => date && !Number.isNaN(date.getTime()))
+      : [];
+
+    if (validItems.length === 0) {
+      return { years: [], yearly: {} };
     }
 
-    const years = [
-      ...new Set(
-        items
-          .map((item) => {
-            if (!item.created_at) return null;
-
-            const date = new Date(item.created_at);
-
-            if (Number.isNaN(date.getTime())) return null;
-
-            return date.getFullYear();
-          })
-          .filter((year) => year !== null)
-      )
+    const financialYears = [
+      ...new Set(validItems.map(({ date }) => getFinancialYearStart(date)))
     ].sort((a, b) => a - b);
 
     const yearly = {};
 
-    years.forEach((year) => {
+    financialYears.forEach((startYear) => {
       const monthly = {
         registrations: [],
         insurance: [],
@@ -256,72 +219,32 @@ class DashboardService {
         training: 0
       };
 
-      monthNames.forEach((name, index) => {
-        const monthIndex = index + 1;
-
-        const monthItems = items.filter((item) => {
-          if (!item.created_at) return false;
-
-          const date = new Date(item.created_at);
-
-          if (Number.isNaN(date.getTime())) return false;
-
+      financialYearMonths.forEach(({ name, month }) => {
+        const monthItems = validItems.filter(({ date }) => {
           return (
-            date.getFullYear() === year &&
-            date.getMonth() + 1 === monthIndex
+            getFinancialYearStart(date) === startYear &&
+            date.getMonth() + 1 === month
           );
         });
 
-        const registrationsCount = monthItems.length;
+        const values = {
+          registrations: monthItems.length,
+          insurance: monthItems.filter(({ item }) => this.isInsured(item)).length,
+          certificates: monthItems.filter(({ item }) => this.isCertificateCompleted(item)).length,
+          training: monthItems.filter(({ item }) => this.isTrainingCompleted(item)).length
+        };
 
-        const insuranceCount = monthItems.filter((item) =>
-          this.isInsured(item)
-        ).length;
-
-        const certificatesCount = monthItems.filter((item) =>
-          this.isCertificateCompleted(item)
-        ).length;
-
-        const trainingCount = monthItems.filter((item) =>
-          this.isTrainingCompleted(item)
-        ).length;
-
-        // Monthly data
-        monthly.registrations.push({
-          name,
-          value: registrationsCount
+        Object.entries(values).forEach(([metric, value]) => {
+          monthly[metric].push({ name, value });
+          totals[metric] += value;
         });
-
-        monthly.insurance.push({
-          name,
-          value: insuranceCount
-        });
-
-        monthly.certificates.push({
-          name,
-          value: certificatesCount
-        });
-
-        monthly.training.push({
-          name,
-          value: trainingCount
-        });
-
-        // Yearly cumulative totals
-        totals.registrations += registrationsCount;
-        totals.insurance += insuranceCount;
-        totals.certificates += certificatesCount;
-        totals.training += trainingCount;
       });
 
-      yearly[year] = {
-        monthly,
-        totals
-      };
+      yearly[formatFinancialYear(startYear)] = { monthly, totals };
     });
 
     return {
-      years,
+      years: financialYears.map(formatFinancialYear),
       yearly
     };
   }

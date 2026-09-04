@@ -25,7 +25,13 @@ test('builds drilldown analytics for registrations, insurance and certificates',
   assert.equal(analytics.dashboardAnalytics.insurance.Maharashtra.uninsured, 1);
   assert.equal(analytics.dashboardAnalytics.certificates.Maharashtra.completed, 1);
   assert.equal(analytics.dashboardAnalytics.certificates.Maharashtra.pending, 1);
-  assert.ok(analytics.timelineAnalytics.monthly.registrations.length > 0);
-  assert.ok(analytics.timelineAnalytics.monthly.insurance.length > 0);
-  assert.ok(analytics.timelineAnalytics.monthly.certificates.length > 0);
+  const financialYear = `${currentYear - (Number(currentMonth) < 4 ? 1 : 0)}-${String(currentYear + (Number(currentMonth) < 4 ? 0 : 1)).slice(-2)}`;
+  const timeline = analytics.timelineAnalytics.yearly[financialYear];
+  assert.deepEqual(analytics.timelineAnalytics.years, [financialYear]);
+  assert.deepEqual(timeline.monthly.registrations.map(({ name }) => name), [
+    'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'
+  ]);
+  assert.equal(timeline.totals.registrations, 3);
+  assert.equal(timeline.totals.insurance, 2);
+  assert.equal(timeline.totals.certificates, 2);
 });
