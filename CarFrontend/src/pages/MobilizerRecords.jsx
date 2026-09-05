@@ -614,7 +614,7 @@ export default function MobilizerRecords() {
                           <Award size={14} />
                         </a>
                         <a
-                          href={rec.insurance_links.niva }
+                          href={rec.insurance_link_niva }
                           target={rec.has_insurance ? "_blank" : undefined}
                           rel="noopener noreferrer"
                           className={`p-1.5 rounded-lg border transition-all ${
@@ -627,7 +627,7 @@ export default function MobilizerRecords() {
                           <Shield size={14} />
                         </a>
                         <a
-                          href={rec.insurance_links.MSwasth }
+                          href={rec.insurance_link_msawasth }
                           target={rec.has_insurance ? "_blank" : undefined}
                           rel="noopener noreferrer"
                           className={`p-1.5 rounded-lg border transition-all ${
