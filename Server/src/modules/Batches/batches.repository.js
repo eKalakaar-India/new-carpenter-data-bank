@@ -37,7 +37,7 @@ class BatchRepository {
     const to = from + pageSize - 1;
 
    let query = supabase
-      .from(this.table)
+      .from("batches_with_counts")
       .select(
         `
           *,
@@ -49,7 +49,7 @@ class BatchRepository {
           )
         `,
         { count: "exact" }
-      )
+      ).order("workshop_date", { ascending: false })
       .range(from, to);
 
     Object.entries(filters).forEach(([key, value]) => {

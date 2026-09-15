@@ -59,12 +59,12 @@ class BatchService{
                 files: images,
                 uploadedBy: user?.userId || user?.id,
             });
-            batchUpdatePayload.batch_img = imagesUpload.map((img) => img.publicUrl || img.storagePath);
+            batchUpdatePayload.batch_img = imagesUpload.map((img) => img.storagePath);
         }
 
         if (video) {
             const videosUpload = await GalleryService.uploadSingleVideo(video);
-            batchUpdatePayload.batch_video = videosUpload.publicUrl || videosUpload.filePath;
+            batchUpdatePayload.batch_video =  videosUpload.filePath;
         }
 
         const carpenter = await this.repository.update(id, batchUpdatePayload);

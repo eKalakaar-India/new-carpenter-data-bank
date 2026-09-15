@@ -8,6 +8,7 @@ import fileRouter from '../modules/uploads/upload.routes.js'
 import linkRouter from '../modules/Links/links.route.js'
 import galleryRoutes from "../modules/gallery/gallery.routes.js";
 import storageRoutes from '../modules/storage/storage.routes.js';
+import reportsRoutes from '../modules/reports/reports.routes.js';
 
 
 const router = Router();
@@ -20,6 +21,7 @@ router.use('/file', fileRouter)
 router.use('/links', linkRouter)
 router.use("/gallery", galleryRoutes);
 router.use('/storage', storageRoutes);
+router.use('/reports', reportsRoutes);
 
 
 export default router;

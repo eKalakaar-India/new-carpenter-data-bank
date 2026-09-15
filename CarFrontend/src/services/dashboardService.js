@@ -55,6 +55,22 @@ export function getDashboardStats(analyticsData) {
   };
 }
 
+/**
+ * Get available financial years from the backend.
+ * Returns array of financial years in format "YYYY-YY"
+ */
+export async function getAvailableFinancialYears(signal) {
+  return getJson('/api/dashboard/financial-years', { signal });
+}
+
+/**
+ * Get KPI data filtered by financial year.
+ * If fy is 'all', returns data for all years.
+ */
+export async function getDashboardKPIs(fy = 'all', signal) {
+  return getJson('/api/dashboard/kpis', { params: { fy }, signal });
+}
+
 export async function getDistrictMetrics(state, signal) {
   return getJson('/api/dashboard/districts', { params: { state }, signal });
 }
@@ -63,10 +79,63 @@ export async function getCityMetrics(state, district, signal) {
   return getJson('/api/dashboard/cities', { params: { state, district }, signal });
 }
 
+/**
+ * Download batch-wise Excel report
+ * @param {string} fy - Financial year (or 'all')
+ */
+export async function downloadExcelReport(fy = 'all') {
+  try {
+    const response = await axios.get('/api/reports/excel', {
+      params: { fy },
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+/**
+ * Download batch-wise Word document report
+ * @param {string} fy - Financial year (or 'all')
+ */
+export async function downloadWordReport(fy = 'all') {
+  try {
+    const response = await axios.get('/api/reports/word', {
+      params: { fy },
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
+/**
+ * Download batch-wise PDF report
+ * @param {string} fy - Financial year (or 'all')
+ */
+export async function downloadPDFReport(fy = 'all') {
+  try {
+    const response = await axios.get('/api/reports/pdf', {
+      params: { fy },
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}
+
 const dashboardService = {
   getDashboardStats,
+  getAvailableFinancialYears,
+  getDashboardKPIs,
   getDistrictMetrics,
   getCityMetrics,
+  downloadExcelReport,
+  downloadWordReport,
+  downloadPDFReport,
 };
 
 export default dashboardService;

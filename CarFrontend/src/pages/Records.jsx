@@ -112,6 +112,7 @@ export default function Records() {
   const [stateSearch, setStateSearch] = useState('');
   const [districtDropdownOpen , setDistrictDropdownOpen ] = useState(false);
   const [districtSearch, setDistrictSearch] = useState('');
+  const [insuranceClaimDropdownOpen, setInsuranceClaimDropdownOpen] = useState(false);
   
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
@@ -159,7 +160,7 @@ export default function Records() {
 
   const handleFilterChange = (key, val) => {
     setFilters({ [key]: val });
-    fetchRecords(1);
+    fetchRecords();
   };
 
   const handlePageChange = (newPage) => {
@@ -325,7 +326,8 @@ export default function Records() {
 
   // Reusable pagination element
   const renderPagination = (positionLabel) => {
-    if (recordsLoading || pagination.totalPages <= 1) return null;
+    if (recordsLoading) return null;
+    // if (recordsLoading || pagination.totalPages <= 1) return null;
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 border border-[#DDE3EA] rounded-xl shadow-sm text-xs">
         <span className="font-semibold text-slate-500">
@@ -595,11 +597,86 @@ export default function Records() {
           )}
         </div>
 
+        {/* Insurance Claim Filter */}
+        <div className="flex flex-col relative">
+          <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
+            Insurance Claim
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setInsuranceClaimDropdownOpen(!insuranceClaimDropdownOpen)}
+            className="bg-[#F5F7FA] border border-[#DDE3EA] hover:border-[var(--accent-primary)]/40 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--accent-primary)] font-semibold flex justify-between items-center w-full shadow-sm text-left transition-all"
+          >
+            <span>{filters.insuranceClaim || 'All'}</span>
+            <span className="text-slate-400 text-[10px]">▼</span>
+          </button>
+
+          {insuranceClaimDropdownOpen && (
+            <>
+              {/* Invisible Click Overlay */}
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setInsuranceClaimDropdownOpen(false)}
+              />
+
+              {/* Dropdown */}
+              <div
+                className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#DDE3EA] rounded-xl shadow-xl z-40 max-h-60 overflow-y-auto p-2.5 space-y-1 animate-fadeIn"
+                style={{ minWidth: "200px" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterChange("insuranceClaim", "All");
+                    setInsuranceClaimDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    filters.insuranceClaim === 'All' || !filters.insuranceClaim
+                      ? "bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold"
+                      : "text-slate-700 hover:bg-[#F5F7FA] transition-colors"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterChange("insuranceClaim", "Yes");
+                    setInsuranceClaimDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    filters.insuranceClaim === "Yes"
+                      ? "bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold"
+                      : "text-slate-700 hover:bg-[#F5F7FA] transition-colors"
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterChange("insuranceClaim", "No");
+                    setInsuranceClaimDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    filters.insuranceClaim === "No"
+                      ? "bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold"
+                      : "text-slate-700 hover:bg-[#F5F7FA] transition-colors"
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="flex items-end">
           <button
             onClick={() => {
               setSearchVal('');
-              setFilters({ category: '', state: '', district:'' });
+              setFilters({ category: '', state: '', district:'', insuranceClaim: 'All' });
               fetchRecords(1);
             }}
             className="w-full py-2.5 bg-[#E8ECF2] hover:bg-[#DDE3EA] text-xs text-[var(--accent-primary)] hover:text-red-750 border border-[#DDE3EA] rounded-lg transition-colors font-bold shadow-sm"
@@ -655,6 +732,7 @@ export default function Records() {
                   <th className="w-48">Batch Data</th>
                   <th className="w-36">Certificate</th>
                   <th className="w-36">Insurance</th>
+                  <th className="w-36">Insurance Claim</th>
                   <th className="w-40 text-center">Credentials Vault</th>
                   <th className="w-32">Date of Birth</th>
                   <th className="w-32">Marital Status</th>
@@ -669,6 +747,7 @@ export default function Records() {
                   <th className="w-32">City / District</th>
                   <th className="w-64">Address details</th>
                   <th className="w-52">Remarks</th>
+                  <th className="w-52">Insurance Claimed</th>
                   <th className="w-24 text-center sticky right-0 bg-[#E8ECF2] z-20 border-l border-[#DDE3EA]">Actions</th>
                 </tr>
               </thead>
@@ -698,6 +777,7 @@ export default function Records() {
                       </div>
                     </td>
                     <td className="text-xs text-slate-700">{rec.has_certificate ? "Yes" : "No" || 'NA'}</td>
+                    <td className="text-xs text-slate-600 font-mono">{rec.has_insurance ? "Yes" : "No" || 'NA'}</td>
                     <td className="text-xs text-slate-600 font-mono">{rec.has_insurance ? "Yes" : "No" || 'NA'}</td>
                     
                     {/* Embedded documents icons */}
@@ -758,6 +838,7 @@ export default function Records() {
                     <td className="text-xs text-slate-500 max-w-[120px] truncate">{rec.district || 'NA'}</td>
                     <td className="text-xs text-slate-500 max-w-[200px] truncate" title={rec.address}>{rec.address || 'NA'}</td>
                     <td className="text-xs text-slate-500 max-w-[200px] truncate">{rec.remarks || 'NA'}</td>
+                    <td className="text-xs text-slate-500 max-w-[200px] truncate">{rec.insurance_claimed ? 'Yes' : 'No' || 'NA'}</td>
                     <td className="text-center flex flex-col justify-center items-center sticky right-0 z-10 border-l border-[#DDE3EA] sticky-col">
                       <button disabled={rec.isVerified} onClick={() => handleVerifyClick(rec)} className={`px-4 py-1 ${rec.isVerified ? 'bg-emerald-500' : 'bg-[var(--accent-primary)]'} text-white text-xs font-semibold rounded-lg shadow-sm transition-colors`}>
                         {rec.isVerified ? 'Verified' : 'Verify'}

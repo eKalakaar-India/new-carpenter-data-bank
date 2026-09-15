@@ -19,6 +19,7 @@ export default function CreateBatchModal({
   state: "",
   district: "",
   city_town: "",
+  center: "",
   full_address: "",
   batch_img: [],
   batch_video: null,
@@ -43,6 +44,7 @@ useEffect(() => {
       state: initialData.state || "",
       district: initialData.district || "",
       city_town: initialData.city_town || "",
+      center:initialData.center || "",
       full_address: initialData.full_address || "",
       batch_img: initialData?.batch_img || [],
       batch_video: initialData?.batch_video || null,
@@ -58,6 +60,7 @@ useEffect(() => {
       state: "",
       district: "",
       city_town: "",
+      center: "",
       full_address: "",
       batch_img: [],
       batch_video: null,
@@ -328,6 +331,24 @@ useEffect(() => {
                 disabled = {initialData && initialData.city_town}
                 required
               />
+            </div>
+
+            <div className="col-span-1 md:col-span-2">
+              <label className="mb-1 block text-sm font-medium">
+                Center
+              </label>
+
+              <select
+                name="center"
+                value={formData.center}
+                onChange={handleChange}
+                className="w-full rounded-lg border px-3 py-2"
+                required
+              >
+                <option value="EBCO Center">EBCO Center</option>
+                <option value="Pantiss Center, Thane">Pantiss Center, Thane</option>
+                <option value="Others">Others</option>
+              </select>
             </div>
             {/* Address */}
 

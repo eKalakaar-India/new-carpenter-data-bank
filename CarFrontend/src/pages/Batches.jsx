@@ -686,6 +686,8 @@ export default function Records() {
                   <th className="w-4">Sr No</th>
                   {/* <th className="w-36">Candidate Number</th> */}
                   <th className="w-4">Batch ID</th>
+                  <th className="w-4">Total Participants</th>
+                  <th className="w-4">Batch Database ID</th>
                   <th className="w-4">Trainer Name</th>
                   <th className="w-4">Trainer Phone no.</th>
                   <th className="w-4">Workshop Date</th>
@@ -715,6 +717,8 @@ export default function Records() {
                     </td>
                     <td className="font-semibold text-[var(--accent-primary)]">{index + 1 || '-'}</td>
                     <td className="text-xs text-slate-600">{rec.batch_id}</td>
+                    <td className="text-xs text-slate-600">{rec.total_participants}</td>
+                    <td className="text-xs text-slate-600">{rec.id}</td>
                     <td className="font-serif font-bold text-slate-900 text-sm">{rec.trainer_name || '-'}</td>
                     <td className="font-serif font-bold text-slate-900 text-sm">{rec?.trainer_phoneno || '-'}</td>
                     <td className="text-xs text-slate-700">{formatDate(rec.workshop_date)|| '-'}</td>

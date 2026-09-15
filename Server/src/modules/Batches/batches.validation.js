@@ -11,6 +11,7 @@ export const createBatchSchema = z.object({
     status: z.enum(['PLANNED', 'ONGOING', 'COMPLETED', 'CANCELLED'], {
       required_error: "Status is required",
     }),
+    center:z.string().trim().min(1, "Center is required."),
     mobiliser_id:z.string().trim().min(1, "Mobiliser ID is required."),
     trainer_phoneno:z.string().min(10, "Valid Mobile no is required.").max(10, "Valid Mobile no. is required."),
     state: z.string().trim().min(1, "State is required").max(30),

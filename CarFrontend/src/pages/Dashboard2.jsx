@@ -36,9 +36,11 @@ import {
   Compass,
   FileCheck2,
   Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import StatCard from '../Component/StatCard';
 import DrilldownChart from '../Component/DrilldownChart';
+import ReportMenu from '../Component/ReportMenu';
 import useDrilldownAnalytics from '../hooks/useDrilldownAnalytics';
 import dashboardService from '../services/dashboardService';
 import { CHART_COLORS, CHART_TOOLTIP_STYLE } from '../constants/chartTheme';
@@ -76,12 +78,56 @@ export default function Dashboard() {
   const [timeline, setTimeline] = useState('monthly');
   const [viewMode, setViewMode] = useState('monthly');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
+  // Financial Year state
+  const [availableFYs, setAvailableFYs] = useState([]);
+  const [selectedFY, setSelectedFY] = useState('all');
+  const [fyLoading, setFYLoading] = useState(false);
+  const [kpiData, setKPIData] = useState(null);
+  const [kpiLoading, setKPILoading] = useState(false);
+  const [reportError, setReportError] = useState(null);
+  const [reportSuccess, setReportSuccess] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/login');
   }, [isAuthenticated, navigate]);
+
+  // Fetch available financial years
+  useEffect(() => {
+    const fetchFYs = async () => {
+      setFYLoading(true);
+      try {
+        const years = await dashboardService.getAvailableFinancialYears();
+        setAvailableFYs(years || []);
+        if (years && years.length > 0 && !years.includes(selectedFY) && selectedFY !== 'all') {
+          setSelectedFY(years[years.length - 1]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch financial years:', error);
+      } finally {
+        setFYLoading(false);
+      }
+    };
+    fetchFYs();
+  }, []);
+
+  // Fetch KPI data when FY changes
+  useEffect(() => {
+    const fetchKPIs = async () => {
+      setKPILoading(true);
+      try {
+        const kpis = await dashboardService.getDashboardKPIs(selectedFY);
+        setKPIData(kpis);
+      } catch (error) {
+        console.error('Failed to fetch KPIs:', error);
+      } finally {
+        setKPILoading(false);
+      }
+    };
+    fetchKPIs();
+  }, [selectedFY]);
 
   useEffect(() => {
     fetchAnalytics(timeline);
@@ -102,16 +148,22 @@ export default function Dashboard() {
   }, [availableYears, selectedYear]);
 
   // --- Section 1: Statistics Cards -----------------------------------
-  // dashboard.service.js's single /api/dashboard endpoint already returns
-  // everything these cards need, and fetchAnalytics() above already pulls
-  // it - so this just re-shapes analyticsData, no second network call.
-  const dashboardStats = useMemo(() => dashboardService.getDashboardStats(analyticsData), [analyticsData]);
-  // The store's fetchAnalytics() doesn't currently surface a distinct error
-  // message (it only console.errors on failure), so this infers an error
-  // state from "done loading, still no data." Add an `analyticsError` field
-  // to fetchAnalytics (mirroring authError/uploadError) if you want the
-  // real backend message shown here instead.
-  const statsError = !analyticsLoading && !analyticsData ? 'Failed to load dashboard statistics' : null;
+  // KPI data is now fetched with FY filtering from /api/dashboard/kpis
+  // Falls back to analyticsData if kpiData hasn't loaded yet
+  const dashboardStats = useMemo(() => {
+    if (kpiData) {
+      const { general = {}, training = {}, insurance = {} } = kpiData;
+      return {
+        totalCarpenters: general.totalCarpenters,
+        totalInsurance: insurance.insured,
+        totalCertificates: general.certificateDispatched,
+        completedTraining: training.completedTraining
+      };
+    }
+    return null;
+  }, [kpiData]);
+
+  const statsError = !kpiLoading && !kpiData ? 'Failed to load dashboard statistics' : null;
 
   // --- Section 2: Interactive Drilldown Analytics ---------------------
   // Root (state) level also comes straight from analyticsData - no fetch
@@ -195,7 +247,57 @@ export default function Dashboard() {
             Carpenter <span className="font-normal italic text-[var(--accent-primary)]">Dashboard</span>
           </h2>
         </div>
+        <div className="flex items-center gap-3">
+          {/* Financial Year Filter */}
+          <label className="flex items-center gap-2 rounded-xl border border-[#DDE3EA] bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Financial Year</span>
+            <select
+              value={selectedFY}
+              onChange={(e) => setSelectedFY(e.target.value)}
+              disabled={fyLoading}
+              className="bg-transparent text-sm font-medium text-slate-800 outline-none disabled:opacity-50"
+            >
+              <option value="all">All</option>
+              {availableFYs.map((fy) => (
+                <option key={fy} value={fy}>
+                  {fy}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Report Generation Menu */}
+          <ReportMenu
+            selectedFY={selectedFY}
+            onDownloadStart={() => {
+              setReportSuccess(null);
+              setReportError(null);
+            }}
+            onDownloadComplete={(filename) => {
+              setReportSuccess(`Report downloaded: ${filename}`);
+              setTimeout(() => setReportSuccess(null), 5000);
+            }}
+            onError={(error) => {
+              setReportError(error);
+              setTimeout(() => setReportError(null), 5000);
+            }}
+          />
+        </div>
       </div>
+
+      {/* Success/Error Messages */}
+      {reportSuccess && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 flex items-center gap-2">
+          <Activity size={16} className="text-green-600" />
+          <p className="text-sm text-green-700">{reportSuccess}</p>
+        </div>
+      )}
+      {reportError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-center gap-2">
+          <AlertCircle size={16} className="text-red-600" />
+          <p className="text-sm text-red-700">{reportError}</p>
+        </div>
+      )}
 
       {/* Summary KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -206,7 +308,7 @@ export default function Dashboard() {
             desc={cfg.desc}
             icon={cfg.icon}
             value={dashboardStats ? dashboardStats[cfg.key] : undefined}
-            loading={analyticsLoading}
+            loading={kpiLoading}
             error={statsError}
           />
         ))}

@@ -115,20 +115,30 @@ class CarpentersRepository {
         status
       ),
       mobiliser_data:platform_users!fk_candidate_mobiliser(name, email, phone_no)
-      `, { count: 'exact' }).range(from, to);
+      `, { count: 'exact' });
 
+    // Apply filters FIRST (before pagination)
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) query = query.eq(key, value);
+      if (value !== null && value !== undefined && value !== '') {
+        query = query.eq(key, value);
+      }
     });
 
     if (search) {
       query = query.or(`full_name.ilike.%${search}%,mobile_no.ilike.%${search}%,id_no.ilike.%${search}%`);
     }
 
+    // Apply sort SECOND (before pagination)
     if (sort) {
       const [column, direction] = sort.split(',');
       query = query.order(column, { ascending: direction !== 'desc' });
+    } else {
+      // Default sorting: created_at DESC (newest first)
+      query = query.order('created_at', { ascending: false });
     }
+
+    // Apply pagination LAST (after all filters and sorting)
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch carpenters', [{ field: 'query', message: error.message }]);
@@ -145,20 +155,30 @@ class CarpentersRepository {
         id,
         batch_id,
         status
-      )`, { count: 'exact' }).range(from, to);
+      )`, { count: 'exact' });
 
+    // Apply filters FIRST (before pagination)
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) query = query.eq(key, value);
+      if (value !== null && value !== undefined && value !== '') {
+        query = query.eq(key, value);
+      }
     });
 
     if (search) {
       query = query.or(`full_name.ilike.%${search}%,mobile_no.ilike.%${search}%,id_no.ilike.%${search}%`);
     }
 
+    // Apply sort SECOND (before pagination)
     if (sort) {
       const [column, direction] = sort.split(',');
       query = query.order(column, { ascending: direction !== 'desc' });
+    } else {
+      // Default sorting: created_at DESC (newest first)
+      query = query.order('created_at', { ascending: false });
     }
+
+    // Apply pagination LAST (after all filters and sorting)
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch carpenters', [{ field: 'query', message: error.message }]);

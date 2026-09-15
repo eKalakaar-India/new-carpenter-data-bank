@@ -38,13 +38,15 @@ export const useVaultStore = create((set, get) => ({
   pagination: {
     total: 0,
     page: 1,
-    limit: 20,
+    limit: 200,
     totalPages: 1,
   },
   filters: {
     search: '',
     category: '',
     state: '',
+    district: '',
+    insuranceClaim: 'All',
     sortBy: 'srNo',
     sortOrder: 'asc'
   },
@@ -133,14 +135,16 @@ export const useVaultStore = create((set, get) => ({
     set({ recordsLoading: true });
     try {
       const activeFilters = { ...get().filters, ...forceFilters };
+      console.log('Active Filters:', activeFilters); // Debugging line
       const response = await axios.get('/api/carpenters', {
         params: {
           page,
-          pageSize: activeFilters.limit || 20,
+          pageSize: 200,
           search: activeFilters.search,
           category: activeFilters.category,
           state: activeFilters.state,
-          district:activeFilters.district
+          district: activeFilters.district,
+          insuranceClaim: activeFilters.insuranceClaim || 'All',
           // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
         }
       });
@@ -156,7 +160,7 @@ export const useVaultStore = create((set, get) => ({
         pagination: {
           total: paginationData.total ?? items.length,
           page: paginationData.page ?? page,
-          limit: paginationData.pageSize ?? activeFilters.limit ?? 20,
+          limit: paginationData.pageSize ?? 200,
           totalPages: paginationData.totalPages ?? 1,
         },
         aggregates: payload?.aggregates ?? { categories: [], states: [] },

@@ -1,9 +1,105 @@
 import DashboardRepository from './dashboard.repository.js';
 import { logger } from '../../utils/logger.js';
+import { supabase } from '../../config/supabase.js';
 
 class DashboardService {
   constructor() {
     this.repository = new DashboardRepository();
+  }
+
+  /**
+   * Extracts unique financial years from carpenters data based on created_at field.
+   * Returns sorted array of financial years in format "YYYY-YY" (e.g., "2025-26")
+   */
+  async getAvailableFinancialYears() {
+    const carpenters = await this.repository.getCarpenters();
+    const years = new Set();
+
+    carpenters.forEach((carpenter) => {
+      if (carpenter.created_at) {
+        const fy = this.getFinancialYear(new Date(carpenter.created_at));
+        years.add(fy);
+      }
+    });
+
+    // Also check batches table for workshop_date
+    const { data: batches, error } = await supabase.from('batches').select('workshop_date');
+    if (!error && batches) {
+      batches.forEach((batch) => {
+        if (batch.workshop_date) {
+          const fy = this.getFinancialYear(new Date(batch.workshop_date));
+          years.add(fy);
+        }
+      });
+    }
+
+    return Array.from(years).sort();
+  }
+
+  /**
+   * Calculates financial year from a date (April-March).
+   * April 2025 to March 2026 = FY "2025-26"
+   */
+  getFinancialYear(date) {
+    if (!date || Number.isNaN(date.getTime())) return null;
+    const month = date.getMonth(); // 0-indexed, so March = 2
+    const year = date.getFullYear();
+    // If month is January, February, or March (0, 1, 2), current FY started in previous year
+    const startYear = month >= 3 ? year : year - 1;
+    return `${startYear}-${String(startYear + 1).slice(-2)}`;
+  }
+
+  /**
+   * Filters carpenters by financial year (based on created_at).
+   * If fy is 'all' or null, returns all carpenters.
+   */
+  filterByFinancialYear(carpenters, fy) {
+    if (!fy || fy === 'all') return carpenters;
+    return carpenters.filter((carpenter) => {
+      if (!carpenter.created_at) return false;
+      return this.getFinancialYear(new Date(carpenter.created_at)) === fy;
+    });
+  }
+
+  /**
+   * Gets KPI data filtered by financial year.
+   * FY filter only affects these KPI cards.
+   */
+  async getDashboardKPIs(fy = 'all') {
+    const carpenters = await this.repository.getCarpenters();
+    const filtered = this.filterByFinancialYear(carpenters, fy);
+
+    const totalCarpenters = filtered.length;
+    const activeCarpenters = filtered.filter((carpenter) => this.isTrainingCompleted(carpenter)).length;
+    const inactiveCarpenters = totalCarpenters - activeCarpenters;
+
+    const completedTraining = filtered.filter((carpenter) => this.isTrainingCompleted(carpenter)).length;
+    const pendingTraining = filtered.filter((carpenter) => !this.isTrainingCompleted(carpenter)).length;
+    const trainingPercentage = totalCarpenters ? Math.round((completedTraining / totalCarpenters) * 100) : 0;
+
+    const insured = filtered.filter((carpenter) => this.isInsured(carpenter)).length;
+    const notInsured = filtered.filter((carpenter) => !this.isInsured(carpenter)).length;
+    const insurancePercentage = totalCarpenters ? Math.round((insured / totalCarpenters) * 100) : 0;
+    const certificateDispatched = filtered.filter((carpenter) => this.isCertificateCompleted(carpenter)).length;
+
+    return {
+      general: {
+        totalCarpenters,
+        totalActiveCarpenters: activeCarpenters,
+        totalInactiveCarpenters: inactiveCarpenters,
+        certificateDispatched
+      },
+      training: {
+        completedTraining,
+        pendingTraining,
+        trainingPercentage,
+      },
+      insurance: {
+        insured,
+        notInsured,
+        insurancePercentage,
+      },
+    };
   }
 
   async getDashboardAnalytics(period = 'monthly') {
@@ -126,7 +222,7 @@ class DashboardService {
   }
 
   isTrainingCompleted(carpenter) {
-    const hasCertificate = carpenter.has_certificate === true || String(carpenter.has_certificate).toUpperCase() === "TRUE";
+    const hasTrained = carpenter.has_trained === true || String(carpenter.has_certificate).toUpperCase() === "TRUE";
 
     const batchCompleted = Array.isArray(carpenter.batch_data) ? carpenter.batch_data.some(
           (batch) =>
@@ -134,7 +230,7 @@ class DashboardService {
         )
       : String(carpenter.batch_data?.status).trim().toUpperCase() === "COMPLETED";
 
-    return hasCertificate || batchCompleted;
+    return hasTrained || batchCompleted;
   }
 
   isInsured(carpenter) {
@@ -404,6 +500,131 @@ class DashboardService {
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([name, count]) => ({ name, count }));
+  }
+
+  /**
+   * Gets all completed batches with their participant data for report generation.
+   * Filters by financial year if provided.
+   */
+  async getCompletedBatchesForReport(fy = 'all') {
+    const { data: batches, error } = await supabase
+      .from('batches')
+      .select(`
+        id,
+        batch_id,
+        workshop_date,
+        state,
+        district,
+        city_town,
+        full_address,
+        trainer_name,
+        trainer_phoneno,
+        status,
+        batch_img,
+        batch_video,
+        created_at,
+        mobiliser:platform_users!fk_batches_mobiliser(id, name, email, phone_no),
+        participants:participants!participants_batch_id_fkey(
+          id,
+          full_name,
+          has_certificate,
+          created_at
+        )
+      `)
+      .eq('status', 'COMPLETED')
+      .order('workshop_date', { ascending: false });
+
+    if (error) {
+      logger.error('Failed to fetch completed batches:', error);
+      return [];
+    }
+
+    if (!batches) return [];
+
+    // Filter by financial year if specified
+    if (fy && fy !== 'all') {
+      return batches.filter((batch) => {
+        if (!batch.workshop_date) return false;
+        return this.getFinancialYear(new Date(batch.workshop_date)) === fy;
+      });
+    }
+
+    return batches;
+  }
+
+  /**
+   * Prepares batch data for Excel export with proper formatting.
+   * Maps database fields to Excel columns.
+   */
+  async getExcelReportData(fy = 'all') {
+    const batches = await this.getCompletedBatchesForReport(fy);
+
+    return batches.map((batch) => {
+      const participants = batch.participants || [];
+      const trainedCount = participants.filter((p) => p.has_trained === true).length;
+
+      return {
+        'Batch No': batch.batch_id || 'N/A',
+        'State': batch.state || 'N/A',
+        'District': batch.district || 'N/A',
+        'Training Location': batch.full_address || 'N/A',
+        'Type of Centre': batch.city_town || 'N/A',
+        'Training Date': batch.workshop_date
+          ? new Date(batch.workshop_date).toLocaleDateString('en-IN')
+          : 'N/A',
+        'Month': batch.workshop_date
+          ? new Date(batch.workshop_date).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+          : 'N/A',
+        'Number of Trainees': participants.length,
+        'Number Trained': trainedCount,
+        'Insurance': batch.participants?.filter((p) => p.has_insurance).length || 0,
+        'Certificate': trainedCount,
+        'Training Details/Remarks': `Trainer: ${batch.trainer_name || 'N/A'}, Phone: ${batch.trainer_phoneno || 'N/A'}`,
+      };
+    });
+  }
+
+  /**
+   * Prepares batch data for Word/PDF report with detailed information.
+   * Includes batch details, participant list, and photo references.
+   */
+  async getDetailedBatchReportData(fy = 'all') {
+    const batches = await this.getCompletedBatchesForReport(fy);
+
+    return batches.map((batch) => {
+      const participants = batch.participants || [];
+      const trainedCount = participants.filter((p) => p.has_trained === true).length;
+      const insuredCount = participants.filter((p) => p.has_insurance === true).length;
+
+      return {
+        batchId: batch.batch_id || 'N/A',
+        batchNo: batch.id,
+        state: batch.state || 'N/A',
+        district: batch.district || 'N/A',
+        trainingLocation: batch.full_address || 'N/A',
+        typeCentre: batch.city_town || 'N/A',
+        trainingDate: batch.workshop_date
+          ? new Date(batch.workshop_date).toLocaleDateString('en-IN')
+          : 'N/A',
+        trainerName: batch.trainer_name || 'N/A',
+        trainerPhone: batch.trainer_phoneno || 'N/A',
+        totalTrainees: participants.length,
+        numberTrained: trainedCount,
+        insuranceCount: insuredCount,
+        certificateCount: trainedCount,
+        mobiliser: batch.mobiliser?.name || 'N/A',
+        mobiliserPhone: batch.mobiliser?.phone_no || 'N/A',
+        photos: Array.isArray(batch.batch_img) ? batch.batch_img : (batch.batch_img ? [batch.batch_img] : []),
+        participantList: participants.map((p, idx) => ({
+          srNo: idx + 1,
+          name: p.full_name || 'N/A',
+          trained: p.has_certificate === true ? 'Yes' : 'No',
+        })),
+        createdAt: batch.created_at
+          ? new Date(batch.created_at).toLocaleDateString('en-IN')
+          : 'N/A',
+      };
+    });
   }
 }
 

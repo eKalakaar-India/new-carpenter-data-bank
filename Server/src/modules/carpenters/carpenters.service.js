@@ -116,6 +116,10 @@ class CarpentersService {
     // if (query.trade) filters.trade = query.trade;
     if (query.training_status) filters.training_status = query.training_status;
     if (query.insurance_status) filters.insurance_status = query.insurance_status;
+    // Insurance Claim filter (maps to has_insurance boolean)
+    if (query.insuranceClaim && query.insuranceClaim !== 'All') {
+      filters.has_insurance = query.insuranceClaim === 'Yes' ? true : false;
+    }
 
     return this.repository.findAll(filters, {
       page,
@@ -135,6 +139,10 @@ class CarpentersService {
     // if (query.trade) filters.trade = query.trade;
     if (query.training_status) filters.training_status = query.training_status;
     if (query.insurance_status) filters.insurance_status = query.insurance_status;
+    // Insurance Claim filter (maps to has_insurance boolean)
+    if (query.insuranceClaim && query.insuranceClaim !== 'All') {
+      filters.has_insurance = query.insuranceClaim === 'Yes' ? true : false;
+    }
 
     return this.repository.findAllCarpentersMobilizerRecords(filters, {
       page,
