@@ -55,8 +55,8 @@ export const exportUsersToExcel = (users) => {
       "Candidate ID":user.candidate_id,
       "Certificate ID":"",
       "Certificate Link":user.certificate_link,
-      "Insurance: Mswasth Link":user.insurance_links.MSwasth,
-      "Insurance: Niva Link":user.insurance_links.niva
+      "Insurance: Mswasth Link":user.insurance_link_msawasth,
+      "Insurance: Niva Link":user.insurance_link_niva
     }))
   );
 

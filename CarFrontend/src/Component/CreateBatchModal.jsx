@@ -76,6 +76,7 @@ useEffect(() => {
   if (!isOpen) return null;
 
   const handleChange = (e) => {
+    console.log(`Field ${e.target.name} changed to:`, e.target.value);
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
@@ -151,6 +152,7 @@ useEffect(() => {
         return;
       }
     }
+    console.log("Submitting form data:", formData);
     onSubmit(formData);
   };
 
@@ -345,7 +347,9 @@ useEffect(() => {
                 className="w-full rounded-lg border px-3 py-2"
                 required
               >
-                <option value="EBCO Center">EBCO Center</option>
+                <option value="">Select a Center</option>
+                <option value="EBCO CDC Center">EBCO CDC Center</option>
+                <option value="EBCO NDC Center">EBCO NDC Center</option>
                 <option value="Pantiss Center, Thane">Pantiss Center, Thane</option>
                 <option value="Others">Others</option>
               </select>

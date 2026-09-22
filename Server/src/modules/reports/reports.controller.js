@@ -19,15 +19,26 @@ export const downloadExcelReport = asyncHandler(async (req, res) => {
   const { fy } = req.query;
   
   try {
-    const reportData = await dashboardService.getExcelReportData(fy || 'all');
+    // const reportData = await dashboardService.getExcelReportData(fy || 'all');
     
-    if (reportData.length === 0) {
+    // if (reportData.length === 0) {
+    //   return res.status(HTTP_STATUS.OK).json(
+    //     ApiResponse.success('No data available for the selected financial year', [])
+    //   );
+    // }
+
+    // const buffer = await generateExcelReport(reportData, fy || 'all');
+
+    const { batchRows, participantRows } = await dashboardService.getExcelReportData(fy || 'all');
+    console.log ('Batch Rows:', batchRows.length, 'Participant Rows:', participantRows.length);
+
+    if (batchRows.length === 0) {
       return res.status(HTTP_STATUS.OK).json(
         ApiResponse.success('No data available for the selected financial year', [])
       );
     }
 
-    const buffer = await generateExcelReport(reportData, fy || 'all');
+    const buffer = await generateExcelReport(batchRows, fy || 'all', participantRows);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -52,6 +63,7 @@ export const downloadWordReport = asyncHandler(async (req, res) => {
 
   try {
     const reportData = await dashboardService.getDetailedBatchReportData(fy || 'all');
+    const kpis = await dashboardService.getDashboardKPIs(fy || 'all');
 
     if (reportData.length === 0) {
       return res.status(HTTP_STATUS.OK).json(
@@ -59,7 +71,7 @@ export const downloadWordReport = asyncHandler(async (req, res) => {
       );
     }
 
-    const buffer = await generateWordReport(reportData, fy || 'all');
+    const buffer = await generateWordReport(reportData, fy || 'all', kpis);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.docx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');

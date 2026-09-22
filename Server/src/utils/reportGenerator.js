@@ -20,7 +20,7 @@ const storageService = new StorageService();
  * @param {string} fy - Financial year for the report
  * @returns {Buffer} Excel file buffer
  */
-export async function generateExcelReport(batchData, fy = 'all') {
+export async function generateExcelReport(batchData, fy = 'all', participantData = []) {
   try {
     const workbook = XLSX.utils.book_new();
 
@@ -33,6 +33,7 @@ export async function generateExcelReport(batchData, fy = 'all') {
       ['Total Batches', batchData.length],
       ['Total Trainees', batchData.reduce((sum, b) => sum + (b['Number of Trainees'] || 0), 0)],
       ['Total Trained', batchData.reduce((sum, b) => sum + (b['Number Trained'] || 0), 0)],
+      ['Total Participants', participantData.length],
       [],
     ];
 
@@ -61,6 +62,29 @@ export async function generateExcelReport(batchData, fy = 'all') {
 
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Batches');
 
+    const participantSheet = XLSX.utils.json_to_sheet(participantData);
+    participantSheet['!cols'] = [
+      { wch: 8 },  // Sr. No
+      { wch: 15 }, // Batch No
+      { wch: 15 }, // Batch No
+      { wch: 28 }, // Participant Name
+      { wch: 15 }, // Phone
+      { wch: 28 }, // Email
+      { wch: 10 }, // Gender
+      { wch: 10 }, // Trained
+      { wch: 10 }, // Insurance
+      { wch: 10 }, // Certificate
+      { wch: 14 }, // State
+      { wch: 14 }, // District
+      { wch: 14 }, // Training Date
+    ];
+
+    if (participantData.length > 0) {
+      participantSheet['!autofilter'] = { ref: participantSheet['!ref'] };
+    }
+
+    XLSX.utils.book_append_sheet(workbook, participantSheet, 'Participants');
+
     // Return buffer
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     return buffer;
@@ -76,7 +100,7 @@ export async function generateExcelReport(batchData, fy = 'all') {
  * @param {string} fy - Financial year for the report
  * @returns {Promise<Buffer>} Word document buffer
  */
-export async function generateWordReport(batchesData, fy = 'all') {
+export async function generateWordReport(batchesData, fy = 'all', kpis = {}) {
   try {
     const sections = [];
 
@@ -107,6 +131,24 @@ export async function generateWordReport(batchesData, fy = 'all') {
     sections.push(
       new Paragraph({
         text: `Total Completed Batches: ${batchesData.length}`,
+        spacing: { after: 400 },
+      })
+    );
+    sections.push(
+      new Paragraph({
+        text: `Total Trained : ${kpis.training.completedTraining || 0}`,
+        spacing: { after: 400 },
+      })
+    );
+    sections.push(
+      new Paragraph({
+        text: `Total Certificates: ${kpis.general.certificateDispatched || 0}`,
+        spacing: { after: 400 },
+      })
+    );
+    sections.push(
+      new Paragraph({
+        text: `Total Insurance: ${kpis.insurance.insured || 0}`,
         spacing: { after: 400 },
       })
     );

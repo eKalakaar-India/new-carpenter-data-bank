@@ -507,6 +507,7 @@ class DashboardService {
    * Filters by financial year if provided.
    */
   async getCompletedBatchesForReport(fy = 'all') {
+    console.log("Hello")
     const { data: batches, error } = await supabase
       .from('batches')
       .select(`
@@ -527,6 +528,11 @@ class DashboardService {
         participants:participants!participants_batch_id_fkey(
           id,
           full_name,
+          mobile_no,
+          email_id,
+          gender,
+          has_trained,
+          has_insurance,
           has_certificate,
           created_at
         )
@@ -559,7 +565,7 @@ class DashboardService {
   async getExcelReportData(fy = 'all') {
     const batches = await this.getCompletedBatchesForReport(fy);
 
-    return batches.map((batch) => {
+    const batchRows = batches.map((batch) => {
       const participants = batch.participants || [];
       const trainedCount = participants.filter((p) => p.has_trained === true).length;
 
@@ -582,6 +588,28 @@ class DashboardService {
         'Training Details/Remarks': `Trainer: ${batch.trainer_name || 'N/A'}, Phone: ${batch.trainer_phoneno || 'N/A'}`,
       };
     });
+
+    const participantRows = batches.flatMap((batch) =>
+      (batch.participants || []).map((p, idx) => ({
+        'Sr. No': idx + 1,
+        'System ID': p.id || 'N/A',
+        'Batch No': batch.batch_id || 'N/A',
+        'Participant Name': p.full_name || 'N/A',
+        'Phone': p.mobile_no || 'N/A',
+        'Email': p.email || 'N/A',
+        'Gender': p.gender || 'N/A',
+        'Trained': p.has_trained ? 'Yes' : 'No',
+        'Insurance': p.has_insurance ? 'Yes' : 'No',
+        'Certificate': p.has_certificate ? 'Yes' : 'No',
+        'State': batch.state || 'N/A',
+        'District': batch.district || 'N/A',
+        'Training Date': batch.workshop_date
+          ? new Date(batch.workshop_date).toLocaleDateString('en-IN')
+          : 'N/A',
+      }))
+    );
+    console.log( participantRows[0]);
+    return { batchRows, participantRows };
   }
 
   /**
