@@ -67,6 +67,15 @@ export function normalizeRow(rawRow) {
     }
   });
 
+  if (normalized.id_no != null) {
+    normalized.id_no = String(normalized.id_no).replace(/\s+/g, '').toUpperCase() || null;
+  }
+
+  if (normalized.mobile_no != null) {
+    const digits = String(normalized.mobile_no).replace(/\D/g, '');
+    normalized.mobile_no = digits ? digits.slice(-10) : null; // drops +91 / leading 0
+  }
+
   return normalized;
 }
 
@@ -85,45 +94,59 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
     throw new Error('The uploaded sheet has no data rows.');
   }
 
-//   const batchId = crypto.randomUUID();
   const timestamp = new Date().toISOString();
 
-  const validRows = [];
-  const rowErrors = [];
+  const normalizedRows = rawRows.map(normalizeRow);
 
- for (const [index, rawRow] of rawRows.entries()) {
+  const { existingIdNos } =
+    await participantsRepository.findExistingIdNosAndMobiles(
+      normalizedRows.map((r) => r.id_no),
+    );
+
+  const validRows = [];
+  const validRowNumbers = []; // Excel row number for each entry in validRows
+  const rowErrors = [];
+  const duplicateRows = [];
+  const seenIdNos = new Map();   // id_no -> first Excel row it appeared on
+  const seenMobiles = new Map();
+
+  for (const [index, normalized] of normalizedRows.entries()) {
     const excelRowNumber = index + 2;
 
-    const normalized = normalizeRow(rawRow);
-    // const { error, value } = validateParticipantRow(normalized);
+    // ...your commented-out validation goes here...
 
-    // if (error) {
-    //     rowErrors.push({
-    //     row: excelRowNumber,
-    //     messages: error.details.map((detail) => detail.message),
-    //     });
-    //     continue;
-    // }
+    const reasons = [];
 
-    // const { data: sequence, error: supaError } = await supabase.rpc(
-    //     "get_next_candidate_sequence"
-    // );
+    if (normalized.id_no) {
+      if (existingIdNos.has(normalized.id_no)) {
+        reasons.push(`id_no ${normalized.id_no} already exists`);
+      } else if (seenIdNos.has(normalized.id_no)) {
+        reasons.push(`id_no ${normalized.id_no} repeats row ${seenIdNos.get(normalized.id_no)} in this file`);
+      }
+    }
 
-    // if (supaError) {
-    //     throw new ApiError(
-    //     HTTP_STATUS.BAD_REQUEST,
-    //     "Unable to create Candidate Sequence"
-    //     );
-    // }
+    if (normalized.mobile_no) {
+      if (seenMobiles.has(normalized.mobile_no)) {
+        reasons.push(`mobile_no ${normalized.mobile_no} repeats row ${seenMobiles.get(normalized.mobile_no)} in this file`);
+      }
+    }
 
-    // const candidateId = await generateCandidateId(sequence);
+    if (reasons.length > 0) {
+      duplicateRows.push({ row: excelRowNumber, messages: reasons });
+      continue;
+    }
+
+    if (normalized.id_no) seenIdNos.set(normalized.id_no, excelRowNumber);
+    if (normalized.mobile_no) seenMobiles.set(normalized.mobile_no, excelRowNumber);
+
+    // ...your commented-out candidate sequence code goes here (after the duplicate check)...
 
     validRows.push({
-        ...normalized,
-        // candidate_id: candidateId,
-        updated_by: updatedBy,
-        updated_at: timestamp,
+      ...normalized,
+      updated_by: updatedBy,
+      updated_at: timestamp,
     });
+    validRowNumbers.push(excelRowNumber);
   }
 
   let insertedCount = 0;
@@ -131,26 +154,117 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
 
   for (let i = 0; i < validRows.length; i += INSERT_CHUNK_SIZE) {
     const chunk = validRows.slice(i, i + INSERT_CHUNK_SIZE);
-    // console.log(i)
     try {
-      const insertedCountForChunk = await participantsRepository.bulkInsertParticipants(chunk);
-
-      insertedCount += insertedCountForChunk;
+      insertedCount += await participantsRepository.bulkInsertParticipants(chunk);
     } catch (err) {
-      insertErrors.push({
-        rows: `${i + 1}-${Math.min(i + INSERT_CHUNK_SIZE, validRows.length)}`,
-        message: err.message,
-      });
+      if (err.code === '23505') {
+        // Another upload inserted a matching row between our check and insert.
+        // Retry one by one so a single duplicate doesn't sink the whole chunk.
+        for (const [j, row] of chunk.entries()) {
+          try {
+            insertedCount += await participantsRepository.bulkInsertParticipants([row]);
+          } catch (rowErr) {
+            const target = rowErr.code === '23505' ? duplicateRows : insertErrors;
+            target.push(
+              rowErr.code === '23505'
+                ? { row: validRowNumbers[i + j], messages: ['Duplicate id_no or mobile_no (caught by database)'] }
+                : { rows: String(validRowNumbers[i + j]), message: rowErr.message }
+            );
+          }
+        }
+      } else {
+        insertErrors.push({
+          rows: `${i + 1}-${Math.min(i + INSERT_CHUNK_SIZE, validRows.length)}`,
+          message: err.message,
+        });
+      }
     }
   }
 
   return {
-    // batchId,
     totalRows: rawRows.length,
     validRowCount: validRows.length,
     insertedCount,
+    duplicateRowCount: duplicateRows.length,
+    duplicateRows,
     invalidRowCount: rowErrors.length,
     rowErrors,
     insertErrors,
   };
 }
+// export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) {
+//   const rawRows = parseWorkbookToRows(fileBuffer);
+
+//   if (rawRows.length === 0) {
+//     throw new Error('The uploaded sheet has no data rows.');
+//   }
+
+// //   const batchId = crypto.randomUUID();
+//   const timestamp = new Date().toISOString();
+
+//   const validRows = [];
+//   const rowErrors = [];
+
+//  for (const [index, rawRow] of rawRows.entries()) {
+//     const excelRowNumber = index + 2;
+
+//     const normalized = normalizeRow(rawRow);
+//     // const { error, value } = validateParticipantRow(normalized);
+
+//     // if (error) {
+//     //     rowErrors.push({
+//     //     row: excelRowNumber,
+//     //     messages: error.details.map((detail) => detail.message),
+//     //     });
+//     //     continue;
+//     // }
+
+//     // const { data: sequence, error: supaError } = await supabase.rpc(
+//     //     "get_next_candidate_sequence"
+//     // );
+
+//     // if (supaError) {
+//     //     throw new ApiError(
+//     //     HTTP_STATUS.BAD_REQUEST,
+//     //     "Unable to create Candidate Sequence"
+//     //     );
+//     // }
+
+//     // const candidateId = await generateCandidateId(sequence);
+
+//     validRows.push({
+//         ...normalized,
+//         // candidate_id: candidateId,
+//         updated_by: updatedBy,
+//         updated_at: timestamp,
+//     });
+//   }
+
+//   let insertedCount = 0;
+//   const insertErrors = [];
+
+//   for (let i = 0; i < validRows.length; i += INSERT_CHUNK_SIZE) {
+//     const chunk = validRows.slice(i, i + INSERT_CHUNK_SIZE);
+//     // console.log(i)
+//     try {
+//       const insertedCountForChunk = await participantsRepository.bulkInsertParticipants(chunk);
+
+//       insertedCount += insertedCountForChunk;
+//     } catch (err) {
+//       insertErrors.push({
+//         rows: `${i + 1}-${Math.min(i + INSERT_CHUNK_SIZE, validRows.length)}`,
+//         message: err.message,
+//       });
+//     }
+//   }
+
+//   return {
+//     // batchId,
+//     totalRows: rawRows.length,
+//     validRowCount: validRows.length,
+//     insertedCount,
+//     invalidRowCount: rowErrors.length,
+//     rowErrors,
+//     insertErrors,
+//   };
+// }

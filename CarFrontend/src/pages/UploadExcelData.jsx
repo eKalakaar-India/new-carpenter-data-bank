@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useVaultStore } from '../store/vaultStore';
 import UploadConfirmModal from '../Component/Uploadconfirmmodal';
 
-const VALID_EXTENSIONS = ['.xlsx', '.xls', '.XLSX', '.XLS', '.Xls', '.Xls', '.XLS', '.XLSX', '.XLSM', '.XLSB', '.XLTX', '.XLTM', '.XLSX', '.XLSM', '.XLSB', '.XLTX', '.XLTM'];
+const VALID_EXTENSIONS = ['.xlsx', '.xls', '.XLSX', '.XLS', '.Xls', '.Xls', '.XLS', '.XLSX', '.XLSM', '.XLSB', '.XLTX', '.XLTM', '.XLSX', '.XLSM', '.XLSB', '.XLTX', '.XLTM', 'Excel Workbook', 'Excel 97-2003 Workbook', 'Excel Macro-Enabled Workbook', 'Excel Binary Workbook', 'Excel Template', 'Excel Macro-Enabled Template'];
 
 export default function ParticipantsUploadPage() {
   const fileInputRef = useRef(null);

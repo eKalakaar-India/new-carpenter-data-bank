@@ -520,32 +520,55 @@ export const useVaultStore = create((set, get) => ({
    * Sends the original file to the backend for parsing, validation, and
    * insertion into the participants table.
    */
+  // uploa
+  //   const { selectedFile } = get();
+  //   if (!selectedFile) return null;
+ 
+  //   set({ isUploading: true, error: null });
+ 
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append('file', selectedFile);
+ 
+  //     const response = await axios.post(`/api/file/upload`, formData);
+  //     console.log(response);
+  //     const result = await response.data.message;
+ 
+  //     if (!result) {
+  //       throw new Error(result.message || 'Upload failed.');
+  //     }
+ 
+  //     set({ uploadResult: result, isUploading: false });
+  //     return result;
+  //   } catch (err) {
+  //     set({ error: err.message, isUploading: false });
+  //     throw err;
+  //   }
+  // },
+ 
   uploadFile: async () => {
-    const { selectedFile } = get();
-    if (!selectedFile) return null;
- 
-    set({ isUploading: true, error: null });
- 
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
- 
-      const response = await axios.post(`/api/file/upload`, formData);
-      console.log(response);
-      const result = await response.data.message;
- 
-      if (!result) {
-        throw new Error(result.message || 'Upload failed.');
-      }
- 
-      set({ uploadResult: result, isUploading: false });
-      return result;
-    } catch (err) {
-      set({ error: err.message, isUploading: false });
-      throw err;
+  const { selectedFile } = get();
+  if (!selectedFile) return;
+
+  set({ isUploading: true, error: null, uploadResult: null });
+  try {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    const { data } = await axios.post('/api/file/upload', formData);
+    set({ uploadResult: data });
+  } catch (err) {
+    const body = err.response?.data;
+    if (body && typeof body === 'object' && 'totalRows' in body) {
+      // Server processed the file but rejected rows (duplicates, validation, etc.)
+      set({ uploadResult: body });
+    } else {
+      // Network failure, 401/413/500, etc. - nothing row-level to show
+      set({ error: body?.message || err.message || 'Upload failed. Please try again.' });
     }
-  },
- 
+  } finally {
+    set({ isUploading: false });
+  }
+},
   reset: () => set({ ...initialState }),
 
   uploadCertificateLinks: async (file) => {

@@ -29,6 +29,33 @@ const TABLE_NAME = 'participants';
 // }
 
 
+const LOOKUP_CHUNK_SIZE = 200; // keeps the PostgREST URL under length limits
+
+async function findExistingValues(column, values) {
+  const found = new Set();
+  const unique = [...new Set(values.filter(Boolean).map(String))];
+
+  for (let i = 0; i < unique.length; i += LOOKUP_CHUNK_SIZE) {
+    const chunk = unique.slice(i, i + LOOKUP_CHUNK_SIZE);
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select(column)
+      .in(column, chunk);
+
+    if (error) throw new Error(`Supabase query failed: ${error.message}`);
+    data.forEach((row) => found.add(String(row[column])));
+  }
+  return found;
+}
+
+async function findExistingIdNosAndMobiles(idNos) {
+  const [existingIdNos] = await Promise.all([
+    findExistingValues('id_no', idNos),
+  ]);
+  return { existingIdNos};
+}
+
+
 async function bulkInsertParticipants(rows) {
   try {
     if (!Array.isArray(rows)) {
@@ -53,9 +80,13 @@ async function bulkInsertParticipants(rows) {
       console.error("Hint:", error.hint);
       console.error("============================================");
 
-      throw new Error(
-        `Supabase insert failed [${error.code}]: ${error.message}`
-      );
+      // throw new Error(
+      //   `Supabase insert failed [${error.code}]: ${error.message}`
+      // );
+
+      const err = new Error(`Supabase insert failed [${error.code}]: ${error.message}`);
+      err.code = error.code;
+      throw err;
     }
 
     return rows.length;
@@ -118,9 +149,10 @@ async function findByIdNumber(idNo) {
   return data;
 }
 
-export default{
+export default {
   bulkInsertParticipants,
   getParticipantsByBatchId,
   listParticipants,
   findByIdNumber,
+  findExistingIdNosAndMobiles,
 };
