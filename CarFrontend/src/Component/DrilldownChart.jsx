@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -12,6 +12,7 @@ import {
 import { TrendingUp, MapPin, AlertTriangle } from 'lucide-react';
 import Breadcrumb from './Breadcrumb';
 import { CHART_COLORS } from '../constants/chartTheme';
+import { useNavigate } from 'react-router-dom';
 
 const LEVEL_LABELS = {
   state: 'State-wise Carpenter Distribution',
@@ -54,6 +55,8 @@ export default function DrilldownChart({
 }) {
   const title = LEVEL_LABELS[level] || LEVEL_LABELS.state;
 
+  const [navState, setNavState] = useState('');
+  const navigate = useNavigate();
   // Remounting the chart on path change (via key) replays the bar entrance
   // animation, giving a smooth transition between drilldown levels.
   const chartKey = useMemo(() => breadcrumbPath.join('/'), [breadcrumbPath]);
@@ -121,7 +124,13 @@ export default function DrilldownChart({
                     fill={CHART_COLORS[index % CHART_COLORS.length]}
                     style={{ cursor: isLeaf ? 'default' : 'pointer' }}
                     onClick={() => {
-                      if (!isLeaf) onBarClick?.(entry.name);
+                      if (!isLeaf) {
+                        onBarClick?.(entry.name)
+                        setNavState(entry.name);
+                      }
+                      else{
+                        navigate(`/records?state=${navState}&district=${entry.name}`);
+                      }  
                     }}
                   />
                 ))}

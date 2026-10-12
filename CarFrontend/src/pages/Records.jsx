@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { exportUsersToExcel } from "../utils/exportExcel";
 import statesData from "../constants/StateDistrictData.json";
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 
 const VAULT_FIELDS = [
@@ -97,6 +97,10 @@ export default function Records() {
     resolveStorageFileUrl
   } = useVaultStore();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [stateParam, setStateParam] = useState(searchParams.get('state') || '');
+  const [districtParam, setDistrictParam] = useState(searchParams.get('district') || '');
+
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedRecords, setSelectedRecords] = useState([])
   const [editingRecord, setEditingRecord] = useState(null);
@@ -145,7 +149,15 @@ export default function Records() {
   };
 
   useEffect(() => {
-    fetchRecords(1);
+    if (stateParam && districtParam) {
+      // setFilters({ state: stateParam, district: districtParam.toLocaleUpperCase() });
+      handleFilterChange('state', stateParam);
+      handleFilterChange('district', districtParam);
+      // fetchRecords(1 ,{ state: stateParam, district: districtParam.toLocaleUpperCase() });
+      fetchAllBatches();
+    }else{
+      fetchRecords(1);
+    }
     fetchAllBatches()
   }, []);
 
@@ -160,6 +172,10 @@ export default function Records() {
 
   const handleFilterChange = (key, val) => {
     setFilters({ [key]: val });
+    setSearchParams(prev => {
+      prev.set(key, val);
+      return prev;
+    });
     fetchRecords();
   };
 
@@ -678,6 +694,7 @@ export default function Records() {
               setSearchVal('');
               setFilters({ category: '', state: '', district:'', insuranceClaim: 'All' });
               fetchRecords(1);
+              navigate('/records');
             }}
             className="w-full py-2.5 bg-[#E8ECF2] hover:bg-[#DDE3EA] text-xs text-[var(--accent-primary)] hover:text-red-750 border border-[#DDE3EA] rounded-lg transition-colors font-bold shadow-sm"
           >

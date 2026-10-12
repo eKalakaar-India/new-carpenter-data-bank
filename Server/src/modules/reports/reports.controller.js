@@ -63,6 +63,7 @@ export const downloadWordReport = asyncHandler(async (req, res) => {
 
   try {
     const reportData = await dashboardService.getDetailedBatchReportData(fy || 'all');
+    const carpenterData = await dashboardService.getCarpenterDataReport(fy || 'all');
     const kpis = await dashboardService.getDashboardKPIs(fy || 'all');
 
     if (reportData.length === 0) {
@@ -71,7 +72,7 @@ export const downloadWordReport = asyncHandler(async (req, res) => {
       );
     }
 
-    const buffer = await generateWordReport(reportData, fy || 'all', kpis);
+    const buffer = await generateWordReport(reportData, carpenterData, fy || 'all', kpis);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.docx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
@@ -96,6 +97,8 @@ export const downloadPDFReport = asyncHandler(async (req, res) => {
 
   try {
     const reportData = await dashboardService.getDetailedBatchReportData(fy || 'all');
+    const carpenterData = await dashboardService.getCarpenterDataReport(fy || 'all');
+    const kpis = await dashboardService.getDashboardKPIs(fy || 'all');
 
     if (reportData.length === 0) {
       return res.status(HTTP_STATUS.OK).json(
@@ -103,7 +106,7 @@ export const downloadPDFReport = asyncHandler(async (req, res) => {
       );
     }
 
-    const buffer = await generatePDFReport(reportData, fy || 'all');
+    const buffer = await generatePDFReport(reportData, carpenterData, fy || 'all', kpis);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');

@@ -125,11 +125,11 @@ export async function processExcelUpload(fileBuffer, { updatedBy = null } = {}) 
       }
     }
 
-    if (normalized.mobile_no) {
-      if (seenMobiles.has(normalized.mobile_no)) {
-        reasons.push(`mobile_no ${normalized.mobile_no} repeats row ${seenMobiles.get(normalized.mobile_no)} in this file`);
-      }
-    }
+    // if (normalized.mobile_no) {
+    //   if (seenMobiles.has(normalized.mobile_no)) {
+    //     reasons.push(`mobile_no ${normalized.mobile_no} repeats row ${seenMobiles.get(normalized.mobile_no)} in this file`);
+    //   }
+    // }
 
     if (reasons.length > 0) {
       duplicateRows.push({ row: excelRowNumber, messages: reasons });

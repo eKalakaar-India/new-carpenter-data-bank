@@ -100,7 +100,7 @@ export async function generateExcelReport(batchData, fy = 'all', participantData
  * @param {string} fy - Financial year for the report
  * @returns {Promise<Buffer>} Word document buffer
  */
-export async function generateWordReport(batchesData, fy = 'all', kpis = {}) {
+export async function generateWordReport(batchesData, carpenterData, fy = 'all', kpis = {}) {
   try {
     const sections = [];
 
@@ -136,19 +136,7 @@ export async function generateWordReport(batchesData, fy = 'all', kpis = {}) {
     );
     sections.push(
       new Paragraph({
-        text: `Total Trained : ${kpis.training.completedTraining || 0}`,
-        spacing: { after: 400 },
-      })
-    );
-    sections.push(
-      new Paragraph({
-        text: `Total Certificates: ${kpis.general.certificateDispatched || 0}`,
-        spacing: { after: 400 },
-      })
-    );
-    sections.push(
-      new Paragraph({
-        text: `Total Insurance: ${kpis.insurance.insured || 0}`,
+        text: `Total Trained : ${kpis.training?.completedTraining || 0}`,
         spacing: { after: 400 },
       })
     );
@@ -212,40 +200,10 @@ export async function generateWordReport(batchesData, fy = 'all', kpis = {}) {
         }),
         new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph('Trainer Phone')] }),
-            new TableCell({ children: [new Paragraph(batch.trainerPhone || '')] }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph('Mobiliser')] }),
-            new TableCell({ children: [new Paragraph(batch.mobiliser || '')] }),
-          ],
-        }),
-        new TableRow({
-          children: [
             new TableCell({ children: [new Paragraph('Total Trainees')] }),
             new TableCell({ children: [new Paragraph(batch.totalTrainees ? batch.totalTrainees.toString() : '0')] }),
           ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph('Number Trained')] }),
-            new TableCell({ children: [new Paragraph(batch.numberTrained ? batch.numberTrained.toString() : '0')] }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph('Insurance Count')] }),
-            new TableCell({ children: [new Paragraph(batch.insuranceCount ? batch.insuranceCount.toString() : '0')] }),
-          ],
-        }),
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph('Certificate Count')] }),
-            new TableCell({ children: [new Paragraph(batch.certificateCount ? batch.certificateCount.toString() : '0')] }),
-          ],
-        }),
+        })
       ];
 
       sections.push(
@@ -256,43 +214,43 @@ export async function generateWordReport(batchesData, fy = 'all', kpis = {}) {
       );
 
       // Participants table
-      if (batch.participantList && batch.participantList.length > 0) {
-        sections.push(
-          new Paragraph({
-            text: 'Participants',
-            heading: HeadingLevel.HEADING_3,
-            bold: true,
-            spacing: { before: 200, after: 100 },
-          })
-        );
+      // if (batch.participantList && batch.participantList.length > 0) {
+      //   sections.push(
+      //     new Paragraph({
+      //       text: 'Participants',
+      //       heading: HeadingLevel.HEADING_3,
+      //       bold: true,
+      //       spacing: { before: 200, after: 100 },
+      //     })
+      //   );
 
-        const participantRows = [
-          new TableRow({
-            children: [
-              new TableCell({ children: [new Paragraph('Sr. No.')], shading: { fill: 'D3D3D3' } }),
-              new TableCell({ children: [new Paragraph('Name')], shading: { fill: 'D3D3D3' } }),
-              new TableCell({ children: [new Paragraph('Trained')], shading: { fill: 'D3D3D3' } }),
-            ],
-          }),
-          ...batch.participantList.map(
-            (p) =>
-              new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph(p.srNo ? p.srNo.toString() : '')] }),
-                  new TableCell({ children: [new Paragraph(p.name || '')] }),
-                  new TableCell({ children: [new Paragraph(p.trained || '')] }),
-                ],
-              })
-          ),
-        ];
+      //   const participantRows = [
+      //     new TableRow({
+      //       children: [
+      //         new TableCell({ children: [new Paragraph('Sr. No.')], shading: { fill: 'D3D3D3' } }),
+      //         new TableCell({ children: [new Paragraph('Name')], shading: { fill: 'D3D3D3' } }),
+      //         new TableCell({ children: [new Paragraph('Trained')], shading: { fill: 'D3D3D3' } }),
+      //       ],
+      //     }),
+      //     ...batch.participantList.map(
+      //       (p) =>
+      //         new TableRow({
+      //           children: [
+      //             new TableCell({ children: [new Paragraph(p.srNo ? p.srNo.toString() : '')] }),
+      //             new TableCell({ children: [new Paragraph(p.name || '')] }),
+      //             new TableCell({ children: [new Paragraph(p.trained || '')] }),
+      //           ],
+      //         })
+      //     ),
+      //   ];
 
-        sections.push(
-          new Table({
-            width: { size: 100, type: 'pct' },
-            rows: participantRows,
-          })
-        );
-      }
+      //   sections.push(
+      //     new Table({
+      //       width: { size: 100, type: 'pct' },
+      //       rows: participantRows,
+      //     })
+      //   );
+      // }
 
       // Photos section
       if (batch.photos && batch.photos.length > 0) {
@@ -342,6 +300,50 @@ export async function generateWordReport(batchesData, fy = 'all', kpis = {}) {
         })
       );
     }
+
+    // if (carpenterData && carpenterData.length > 0) {
+        sections.push(
+          new Paragraph({
+            text: 'Participants',
+            heading: HeadingLevel.HEADING_3,
+            bold: true,
+            spacing: { before: 200, after: 100 },
+          })
+        );
+
+        const participantRows = [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph('Sr. No.')], shading: { fill: 'D3D3D3' } }),
+              new TableCell({ children: [new Paragraph('Training Date')], shading: { fill: 'D3D3D3' } }),
+              new TableCell({ children: [new Paragraph('Name')], shading: { fill: 'D3D3D3' } }),
+              new TableCell({ children: [new Paragraph('State')], shading: { fill: 'D3D3D3' } }),
+              new TableCell({ children: [new Paragraph('District')], shading: { fill: 'D3D3D3' } }),
+              new TableCell({ children: [new Paragraph('Mobile No.')], shading: { fill: 'D3D3D3' } }),
+            ],
+          }),
+          ...carpenterData.map(
+            (p,idx) =>
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph((idx + 1).toString())] }),
+                  new TableCell({ children: [new Paragraph(p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN') : '')] }),
+                  new TableCell({ children: [new Paragraph(p.full_name || '')] }),
+                  new TableCell({ children: [new Paragraph(p.state || '')] }),
+                  new TableCell({ children: [new Paragraph(p.district || '')] }),
+                  new TableCell({ children: [new Paragraph(p.mobile_no || '')] }),
+                ],
+              })
+          ),
+        ];
+
+        sections.push(
+          new Table({
+            width: { size: 100, type: 'pct' },
+            rows: participantRows,
+          })
+        );
+    // }
 
     // Create document
     const doc = new Document({
@@ -458,7 +460,7 @@ async function fetchImageBuffer(url) {
  */
 
 
-export async function generatePDFReport(batchesData, fy = 'all') {
+export async function generatePDFReport(batchesData, carpenterData = [], fy = 'all', kpis = {}) {
   // 1. Pre-fetch all photo buffers so PDFKit stream rendering stays fast and synchronous
   const batchesWithImageBuffers = await Promise.all(
     batchesData.map(async (batch) => {
@@ -487,74 +489,127 @@ export async function generatePDFReport(batchesData, fy = 'all') {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', (err) => reject(err));
 
-      // Title
+      const margin = 50;
+      const contentWidth = doc.page.width - margin * 2;
+      const pageBottom = () => doc.page.height - margin;
+      const ensureSpace = (height) => {
+        if (doc.y + height > pageBottom()) {
+          doc.addPage();
+          doc.y = margin;
+        }
+      };
+      const displayValue = (value) => (value == null ? '' : String(value));
+      const drawTableRow = (cells, widths, isHeader = false) => {
+        const padding = 5;
+        doc.font(isHeader ? 'Helvetica-Bold' : 'Helvetica').fontSize(9);
+        const heights = cells.map((cell, index) =>
+          doc.heightOfString(displayValue(cell), {
+            width: widths[index] - padding * 2,
+          })
+        );
+        const rowHeight = Math.max(22, ...heights) + padding * 2;
+        const rowY = doc.y;
+
+        let x = margin;
+        cells.forEach((cell, index) => {
+          doc.save();
+          doc.rect(x, rowY, widths[index], rowHeight)
+            .fillAndStroke(isHeader ? '#D3D3D3' : '#FFFFFF', '#808080');
+          doc.restore();
+          doc.font(isHeader ? 'Helvetica-Bold' : 'Helvetica')
+            .fontSize(9)
+            .fillColor('#000000')
+            .text(displayValue(cell), x + padding, rowY + padding, {
+              width: widths[index] - padding * 2,
+            });
+          x += widths[index];
+        });
+
+        doc.y = rowY + rowHeight;
+        return rowHeight;
+      };
+      const drawTable = (headers, rows, widths) => {
+        const drawHeader = () => drawTableRow(headers, widths, true);
+        ensureSpace(30);
+        drawHeader();
+
+        rows.forEach((row) => {
+          doc.font('Helvetica').fontSize(9);
+          const rowHeight = Math.max(
+            22,
+            ...row.map((cell, index) =>
+              doc.heightOfString(displayValue(cell), {
+                width: widths[index] - 10,
+              })
+            )
+          ) + 10;
+
+          if (doc.y + rowHeight > pageBottom()) {
+            doc.addPage();
+            doc.y = margin;
+            drawHeader();
+          }
+          drawTableRow(row, widths);
+        });
+      };
+      const sectionHeading = (text) => {
+        ensureSpace(30);
+        doc.moveDown(0.5);
+        doc.font('Helvetica-Bold').fontSize(13).fillColor('#000000').text(text);
+        doc.moveDown(0.3);
+      };
+
       doc.fontSize(24).font('Helvetica-Bold').text('Batch-wise Training Report', { align: 'center' });
       doc.moveDown();
-
-      // Report info
       doc.fontSize(12).font('Helvetica');
       doc.text(`Financial Year: ${fy === 'all' ? 'All Years' : fy}`);
       doc.text(`Report Generated: ${new Date().toLocaleDateString('en-IN')}`);
       doc.text(`Total Completed Batches: ${batchesWithImageBuffers.length}`);
+      doc.text(`Total Trained : ${kpis.training?.completedTraining || 0}`);
       doc.moveDown();
 
-      // Batch details
       batchesWithImageBuffers.forEach((batch, index) => {
-        if (doc.y > 700) doc.addPage();
+        ensureSpace(40);
+        doc.fontSize(14).font('Helvetica-Bold').text(`Batch ${index + 1}: ${batch.batchId}`);
+        doc.moveDown(0.4);
 
-        doc.fontSize(14).font('Helvetica-Bold').text(`Batch ${index + 1}: ${batch.batchId}`, { underline: true });
-        doc.moveDown(0.5);
+        drawTable(
+          ['Field', 'Value'],
+          [
+            ['State', batch.state || ''],
+            ['District', batch.district || ''],
+            ['Training Location', batch.trainingLocation || ''],
+            ['Type of Centre', batch.typeCentre || ''],
+            ['Training Date', batch.trainingDate || ''],
+            ['Trainer Name', batch.trainerName || ''],
+            ['Total Trainees', batch.totalTrainees ? String(batch.totalTrainees) : '0'],
+          ],
+          [contentWidth * 0.35, contentWidth * 0.65]
+        );
 
-        doc.fontSize(10).font('Helvetica');
-        doc.text(`State: ${batch.state}`);
-        doc.text(`District: ${batch.district}`);
-        doc.text(`Training Location: ${batch.trainingLocation}`);
-        doc.text(`Type of Centre: ${batch.typeCentre}`);
-        doc.text(`Training Date: ${batch.trainingDate}`);
-        doc.text(`Trainer: ${batch.trainerName} (${batch.trainerPhone})`);
-        doc.text(`Mobiliser: ${batch.mobiliser}`);
-        doc.text(`Total Trainees: ${batch.totalTrainees}`);
-        doc.text(`Number Trained: ${batch.numberTrained}`);
-        doc.text(`Insurance: ${batch.insuranceCount}`);
-        doc.text(`Certificates: ${batch.certificateCount}`);
-
-        // --- RENDER VISUAL IMAGES ---
-        if (batch.photoBuffers && batch.photoBuffers.length > 0) {
-          doc.moveDown(0.5);
-          doc.font('Helvetica-Bold').text(`Photos (${batch.photoBuffers.length}):`);
-          doc.moveDown(0.5);
-
-          batch.photoBuffers.forEach((imgBuffer) => {
-            // Add a new page if remaining vertical space is under 160 units
-            if (doc.y > 650) doc.addPage();
-
-            // Embed image into PDF
-            doc.image(imgBuffer, {
-              fit: [200, 140], // max width: 200px, max height: 140px (preserves aspect ratio)
-              align: 'left',
-            });
-            doc.moveDown(1);
+        if (batch.photos && batch.photos.length > 0) {
+          sectionHeading(`Photos (${batch.photos.length} available)`);
+          batch.photoBuffers.forEach((imageBuffer) => {
+            ensureSpace(210);
+            doc.image(imageBuffer, margin, doc.y, { fit: [300, 200] });
+            doc.y += 210;
           });
         }
-
-        // Participants section
-        if (batch.participantList && batch.participantList.length > 0) {
-          if (doc.y > 700) doc.addPage();
-          doc.moveDown(0.5);
-          doc.font('Helvetica-Bold').fontSize(10).text('Participants:');
-
-          batch.participantList.slice(0, 10).forEach((p) => {
-            if (doc.y > 750) doc.addPage();
-            doc.font('Helvetica').fontSize(9).text(`  ${p.srNo}. ${p.name} - ${p.trained}`);
-          });
-
-          if (batch.participantList.length > 10) {
-            doc.text(`  ... and ${batch.participantList.length - 10} more participants`);
-          }
-        }
-
-        doc.moveDown(1);
+        doc.moveDown();
       });
+
+      sectionHeading('Participants');
+      drawTable(
+        ['Sr. No.', 'Name', 'State', 'District', 'Mobile No.'],
+        carpenterData.map((participant, index) => [
+          String(index + 1),
+          participant.full_name || '',
+          participant.state || '',
+          participant.district || '',
+          participant.mobile_no || '',
+        ]),
+        [contentWidth * 0.1, contentWidth * 0.28, contentWidth * 0.19, contentWidth * 0.2, contentWidth * 0.23]
+      );
 
       doc.end();
     } catch (error) {

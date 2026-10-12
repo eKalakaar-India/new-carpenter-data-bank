@@ -61,6 +61,12 @@ class DashboardService {
     });
   }
 
+  async getCarpenterDataReport(fy) {
+    const carpenters = await this.repository.getCarpentersReport(fy || 'all');
+    const filtered = this.filterByFinancialYear(carpenters, fy);
+    return filtered;
+  }
+
   /**
    * Gets KPI data filtered by financial year.
    * FY filter only affects these KPI cards.
@@ -82,6 +88,7 @@ class DashboardService {
     const insurancePercentage = totalCarpenters ? Math.round((insured / totalCarpenters) * 100) : 0;
     const certificateDispatched = filtered.filter((carpenter) => this.isCertificateCompleted(carpenter)).length;
 
+    const appInstallations = filtered.filter((carpenter) => this.isAppInstalled(carpenter)).length;
     return {
       general: {
         totalCarpenters,
@@ -99,6 +106,9 @@ class DashboardService {
         notInsured,
         insurancePercentage,
       },
+      appInstalled: {
+        appInstallations
+      }
     };
   }
 
@@ -219,6 +229,10 @@ class DashboardService {
 
   isCertificateCompleted(carpenter){
     return carpenter.has_certificate === true
+  }
+
+  isAppInstalled(carpenter) {
+    return carpenter.has_app_installed === true || carpenter.has_app_installed === 'true' || carpenter.has_app_installed === 'TRUE' || carpenter.has_app_installed === 'yes' || carpenter.has_app_installed === 'YES' || carpenter.has_app_installed === 'Y';
   }
 
   isTrainingCompleted(carpenter) {
@@ -507,7 +521,6 @@ class DashboardService {
    * Filters by financial year if provided.
    */
   async getCompletedBatchesForReport(fy = 'all') {
-    console.log("Hello")
     const { data: batches, error } = await supabase
       .from('batches')
       .select(`
@@ -538,11 +551,11 @@ class DashboardService {
         )
       `)
       .eq('status', 'COMPLETED')
-      .order('workshop_date', { ascending: false });
+      .order('workshop_date', { ascending: true });
 
     if (error) {
       logger.error('Failed to fetch completed batches:', error);
-      return [];
+      throw error;
     }
 
     if (!batches) return [];
@@ -643,11 +656,11 @@ class DashboardService {
         mobiliser: batch.mobiliser?.name || 'N/A',
         mobiliserPhone: batch.mobiliser?.phone_no || 'N/A',
         photos: Array.isArray(batch.batch_img) ? batch.batch_img : (batch.batch_img ? [batch.batch_img] : []),
-        participantList: participants.map((p, idx) => ({
-          srNo: idx + 1,
-          name: p.full_name || 'N/A',
-          trained: p.has_certificate === true ? 'Yes' : 'No',
-        })),
+          // participantList: participants.map((p, idx) => ({
+          //   srNo: idx + 1,
+          //   name: p.full_name || 'N/A',
+          //   trained: p.has_certificate === true ? 'Yes' : 'No',
+          // })),
         createdAt: batch.created_at
           ? new Date(batch.created_at).toLocaleDateString('en-IN')
           : 'N/A',

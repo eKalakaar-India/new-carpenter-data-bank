@@ -35,6 +35,7 @@ import {
   Globe,
   Compass,
   FileCheck2,
+  Download,
   Sparkles,
   AlertCircle,
 } from 'lucide-react';
@@ -54,6 +55,7 @@ const STAT_CARD_CONFIG = [
   { key: 'completedTraining', label: 'Trained', icon: Building, desc: 'Functional Registration' },
   { key: 'totalInsurance', label: 'Insurance', icon: FileSpreadsheet, desc: 'Processed Insurance' },
   { key: 'totalCertificates', label: 'Certificates', icon: FileCheck2, desc: 'Issued Certificates on File' },
+  { key: 'appInstalled', label: 'App Installed', icon: Download, desc: 'Issued Certificates on File' },
 ];
 
 const COLORS = [
@@ -157,7 +159,8 @@ export default function Dashboard() {
         totalCarpenters: general.totalCarpenters,
         totalInsurance: insurance.insured,
         totalCertificates: general.certificateDispatched,
-        completedTraining: training.completedTraining
+        completedTraining: training.completedTraining,
+        appInstalled: kpiData?.appInstalled?.appInstallations || 0
       };
     }
     return null;
@@ -300,7 +303,7 @@ export default function Dashboard() {
       )}
 
       {/* Summary KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {STAT_CARD_CONFIG.map((cfg) => (
           <StatCard
             key={cfg.key}
@@ -495,7 +498,7 @@ export default function Dashboard() {
       )}
 
       <div className='flex gap-4'>
-        <div className="w-1/2 vault-card lg:col-span-1 flex flex-col h-[380px] hover:shadow-md transition-shadow">
+        {/* <div className="w-1/2 vault-card lg:col-span-1 flex flex-col h-[380px] hover:shadow-md transition-shadow">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-800 mb-4 flex items-center gap-2">
             <Activity size={14} className="text-[var(--accent-primary)]" />
             <span>General Registration Distribution</span>
@@ -528,10 +531,10 @@ export default function Dashboard() {
               </RadarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </div> */}
 
         {/* State-wise Records Bar Chart */}
-        <div className="w-1/2 vault-card lg:col-span-1 flex flex-col h-[380px] hover:shadow-md transition-shadow">
+        {/* <div className="w-1/2 vault-card lg:col-span-1 flex flex-col h-[380px] hover:shadow-md transition-shadow">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-800 mb-4 flex items-center gap-2">
             <TrendingUp size={14} className="text-[var(--accent-primary)]" />
             <span>State Demographics (Top 5)</span>
@@ -558,7 +561,7 @@ export default function Dashboard() {
               <div className="h-full flex items-center justify-center text-xs text-slate-400">No demographic data.</div>
             )}
           </div>
-        </div>
+        </div> */}
 
       </div>
 

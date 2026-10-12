@@ -16,6 +16,13 @@ class DashboardRepository {
     if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch dashboard data', [{ field: 'carpenters', message: error.message }]);
     return data ?? [];
   }
+  async getCarpentersReport(fy) {
+    // const { data, error } = await supabase.from('participants').select('*');
+    let {data, error} = await supabase.from('participants').select('full_name, mobile_no, state, district, created_at').order('created_at', { ascending: true });
+
+    if (error) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to fetch dashboard data', [{ field: 'carpenters', message: error.message }]);
+    return data ?? [];
+  }
 
   async getRecentRegistrations(limit = 10) {
     const { data, error } = await supabase.from('participants').select('*').order('created_at', { ascending: false }).limit(limit);
