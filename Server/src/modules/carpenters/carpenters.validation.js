@@ -81,8 +81,14 @@ export const carpenterQuerySchema = z.object({
   search: z.string().optional(),
   state: z.string().optional(),
   district: z.string().optional(),
+  batch: z.string().optional(),
   trade: z.string().optional(),
   training_status: z.string().optional(),
   insurance_status: z.string().optional(),
+  // Comma-separated list of months in YYYY-MM format, e.g. "2026-01,2026-03"
+  months: z
+    .string()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])(,\d{4}-(0[1-9]|1[0-2]))*$/, 'months must be comma-separated YYYY-MM values')
+    .optional(),
   sort: z.string().optional(),
 });

@@ -179,7 +179,27 @@ export default function Dashboard() {
       .sort((a, b) => b.count - a.count);
   }, [analyticsData]);
 
-  const drilldownRoot = useMemo(() => analyticsData?.dashboardAnalytics?.[analyticsType] || {}, [analyticsData, analyticsType]);
+  // Drilldown chart is month-wise: arrows step through the months that have
+  // registrations. null = not chosen yet, which falls back to the latest month.
+  const drilldownMonths = useMemo(
+    () => analyticsData?.monthlyDashboardAnalytics?.months || [],
+    [analyticsData]
+  );
+  const [drilldownMonthIdx, setDrilldownMonthIdx] = useState(null);
+  const activeMonthIdx = drilldownMonths.length === 0
+    ? -1
+    : Math.min(drilldownMonthIdx ?? drilldownMonths.length - 1, drilldownMonths.length - 1);
+  const activeMonthKey = activeMonthIdx >= 0 ? drilldownMonths[activeMonthIdx] : null;
+  const activeMonthLabel = useMemo(() => {
+    if (!activeMonthKey) return 'No data';
+    const [y, m] = activeMonthKey.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  }, [activeMonthKey]);
+
+  const drilldownRoot = useMemo(
+    () => analyticsData?.monthlyDashboardAnalytics?.byMonth?.[activeMonthKey]?.[analyticsType] || {},
+    [analyticsData, activeMonthKey, analyticsType]
+  );
   const drilldown = useDrilldownAnalytics(drilldownRoot);
 
   useEffect(() => {
@@ -494,6 +514,11 @@ export default function Dashboard() {
           onBarClick={drilldown.drillInto}
           onBreadcrumbClick={drilldown.navigateTo}
           isLeaf={drilldown.isLeaf}
+          monthLabel={activeMonthLabel}
+          hasPrevMonth={activeMonthIdx > 0}
+          hasNextMonth={activeMonthIdx >= 0 && activeMonthIdx < drilldownMonths.length - 1}
+          onPrevMonth={() => setDrilldownMonthIdx(Math.max(activeMonthIdx - 1, 0))}
+          onNextMonth={() => setDrilldownMonthIdx(Math.min(activeMonthIdx + 1, drilldownMonths.length - 1))}
         />
       )}
 

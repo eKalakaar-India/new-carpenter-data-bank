@@ -24,6 +24,7 @@ import {
 import { exportUsersToExcel } from "../utils/exportExcel";
 import statesData from "../constants/StateDistrictData.json";
 import { Link, useSearchParams } from 'react-router-dom';
+import MonthMultiSelect from "../Component/MonthMultiSelect";
 
 
 const VAULT_FIELDS = [
@@ -78,8 +79,9 @@ const VAULT_FIELDS = [
 
 export default function Records() {
   const { 
-    records, 
-    recordsLoading, 
+    records,
+    recordsLoading,
+    recordsError,
     pagination, 
     filters, 
     aggregates,
@@ -115,9 +117,10 @@ export default function Records() {
   const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
   const [stateSearch, setStateSearch] = useState('');
   const [districtDropdownOpen , setDistrictDropdownOpen ] = useState(false);
+  const [batchesDropdownOpen, setBatchesDropdownOpen] = useState(false);
   const [districtSearch, setDistrictSearch] = useState('');
   const [insuranceClaimDropdownOpen, setInsuranceClaimDropdownOpen] = useState(false);
-  
+
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
 
@@ -177,6 +180,23 @@ export default function Records() {
       return prev;
     });
     fetchRecords();
+  };
+
+  const selectedMonths = Array.isArray(filters.months) ? filters.months : [];
+
+  // Debounce so ticking several months in a row sends a single request
+  const monthsFetchTimer = useRef(null);
+  useEffect(() => () => clearTimeout(monthsFetchTimer.current), []);
+
+  const applyMonths = (months) => {
+    setFilters({ months });
+    setSearchParams(prev => {
+      if (months.length) prev.set('months', months.join(','));
+      else prev.delete('months');
+      return prev;
+    });
+    clearTimeout(monthsFetchTimer.current);
+    monthsFetchTimer.current = setTimeout(() => fetchRecords(1), 500);
   };
 
   const handlePageChange = (newPage) => {
@@ -613,6 +633,61 @@ export default function Records() {
           )}
         </div>
 
+
+        <div className="flex flex-col relative">
+          <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
+            Batches:
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setBatchesDropdownOpen(!batchesDropdownOpen)}
+            className="bg-[#F5F7FA] border border-[#DDE3EA] hover:border-[var(--accent-primary)]/40 text-slate-800 text-xs rounded-lg px-3 py-2.5 focus:outline-none focus:border-[var(--accent-primary)] font-semibold flex justify-between items-center w-full shadow-sm text-left transition-all"
+            // disabled={!filters.state}
+          >
+            <span>
+              {filters.batch?.batch_id || "-- All Batches --"}
+            </span>
+            <span className="text-slate-400 text-[10px]">▼</span>
+          </button>
+
+          {batchesDropdownOpen && (
+            <>
+              {/* Invisible Click Overlay */}
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setBatchesDropdownOpen(false)}
+              />
+
+              {/* Dropdown */}
+              <div
+                className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#DDE3EA] rounded-xl shadow-xl z-40 max-h-60 overflow-y-auto p-2.5 space-y-1 animate-fadeIn"
+                style={{ minWidth: "200px" }}
+              >
+                 {
+                allBatches && allBatches.map((item, index)=>(
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      handleFilterChange("batch", item);
+                      setBatchesDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                      filters.batch === item.batch_id
+                        ? "bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold"
+                        : "text-slate-700 hover:bg-[#F5F7FA] transition-colors"
+                    }`}
+                  >
+                    {item.batch_id}
+                  </button>
+                ))
+              }
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Insurance Claim Filter */}
         <div className="flex flex-col relative">
           <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-2">
@@ -688,11 +763,18 @@ export default function Records() {
           )}
         </div>
 
+        {/* Months Multi-select Filter */}
+        <MonthMultiSelect
+          label="Enrollment Months"
+          selected={selectedMonths}
+          onChange={applyMonths}
+        />
+
         <div className="flex items-end">
           <button
             onClick={() => {
               setSearchVal('');
-              setFilters({ category: '', state: '', district:'', insuranceClaim: 'All' });
+              setFilters({ category: '', state: '', district:'', batch: '', insuranceClaim: 'All', months: [] });
               fetchRecords(1);
               navigate('/records');
             }}
@@ -702,6 +784,13 @@ export default function Records() {
           </button>
         </div>
       </div>
+
+      {recordsError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-4 py-3 rounded-xl">
+          <AlertTriangle size={14} />
+          <span>Could not load records: {recordsError} The table below may be out of date.</span>
+        </div>
+      )}
 
       {/* Pagination Controls at the Start (Top) of Vault Data */}
       {renderPagination("top")}

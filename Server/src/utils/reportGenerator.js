@@ -14,15 +14,85 @@ import { logger } from './logger.js';
 
 
 const storageService = new StorageService();
+
+/**
+ * Builds state-wise, month-wise training counts from the month-wise batch groups.
+ * @param {Array<{month: string, batches: Array<{state, totalParticipants}>}>} monthWiseData
+ * @returns {{months: string[], states: Array<{state: string, byMonth: Object, totalTrainings: number, totalParticipants: number}>}}
+ */
+function buildStateMonthWiseData(monthWiseData = []) {
+  const months = monthWiseData.map((g) => g.month);
+  const stateMap = new Map();
+
+  monthWiseData.forEach((group) => {
+    group.batches.forEach((b) => {
+      const state = b.state || 'N/A';
+      if (!stateMap.has(state)) {
+        stateMap.set(state, { state, byMonth: {}, totalTrainings: 0, totalParticipants: 0 });
+      }
+      const entry = stateMap.get(state);
+      const cell = entry.byMonth[group.month] || (entry.byMonth[group.month] = { trainings: 0, participants: 0 });
+      const participants = Number(b.totalParticipants) || 0;
+      cell.trainings += 1;
+      cell.participants += participants;
+      entry.totalTrainings += 1;
+      entry.totalParticipants += participants;
+    });
+  });
+
+  const states = [...stateMap.values()].sort((a, b) => a.state.localeCompare(b.state));
+  return { months, states };
+}
+
 /**
  * Generates Excel report from batch data
  * @param {Array} batchData - Array of batch records with KPI data
  * @param {string} fy - Financial year for the report
  * @returns {Buffer} Excel file buffer
  */
-export async function generateExcelReport(batchData, fy = 'all', participantData = []) {
+export async function generateExcelReport(batchData, fy = 'all', participantData = [], monthWiseData = []) {
   try {
     const workbook = XLSX.utils.book_new();
+
+    // Month-wise batch sheet (first sheet, shown at the top of the report)
+    const monthWiseRows = [['Month-wise Batch Data'], []];
+    monthWiseData.forEach((group) => {
+      monthWiseRows.push([group.month]);
+      monthWiseRows.push(['Date', 'Batch Id', 'State', 'District', 'Total Participants']);
+      group.batches.forEach((b) => {
+        monthWiseRows.push([b.date, b.batchId, b.state, b.district, b.totalParticipants]);
+      });
+      monthWiseRows.push(['', '', '', `Total (${group.batches.length} batches)`, group.totalParticipants]);
+      monthWiseRows.push([]);
+    });
+    if (monthWiseData.length > 0) {
+      monthWiseRows.push(['', '', '', 'Grand Total', monthWiseData.reduce((sum, g) => sum + g.totalParticipants, 0)]);
+    }
+    const monthWiseSheet = XLSX.utils.aoa_to_sheet(monthWiseRows);
+    monthWiseSheet['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 24 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(workbook, monthWiseSheet, 'Month-wise Batches');
+
+    // State-wise monthly training sheet (state x month matrix)
+    const { months, states } = buildStateMonthWiseData(monthWiseData);
+    const stateRows = [['State-wise Monthly Training Data'], []];
+    const buildMatrix = (title, key, totalKey) => {
+      stateRows.push([title]);
+      stateRows.push(['State', ...months, 'Total']);
+      states.forEach((s) => {
+        stateRows.push([s.state, ...months.map((m) => s.byMonth[m]?.[key] || 0), s[totalKey]]);
+      });
+      stateRows.push([
+        'Total',
+        ...months.map((m) => states.reduce((sum, s) => sum + (s.byMonth[m]?.[key] || 0), 0)),
+        states.reduce((sum, s) => sum + s[totalKey], 0),
+      ]);
+      stateRows.push([]);
+    };
+    buildMatrix('Trainings Conducted (number of batches)', 'trainings', 'totalTrainings');
+    buildMatrix('Participants Trained', 'participants', 'totalParticipants');
+    const stateSheet = XLSX.utils.aoa_to_sheet(stateRows);
+    stateSheet['!cols'] = [{ wch: 22 }, ...months.map(() => ({ wch: 16 })), { wch: 12 }];
+    XLSX.utils.book_append_sheet(workbook, stateSheet, 'State-wise Monthly');
 
     // Create summary sheet
     const summaryData = [
@@ -100,7 +170,7 @@ export async function generateExcelReport(batchData, fy = 'all', participantData
  * @param {string} fy - Financial year for the report
  * @returns {Promise<Buffer>} Word document buffer
  */
-export async function generateWordReport(batchesData, carpenterData, fy = 'all', kpis = {}) {
+export async function generateWordReport(batchesData, carpenterData, fy = 'all', kpis = {}, monthWiseData = []) {
   try {
     const sections = [];
 
@@ -127,6 +197,101 @@ export async function generateWordReport(batchesData, carpenterData, fy = 'all',
         spacing: { after: 400 },
       })
     );
+
+    // Month-wise batch data (top of the report)
+    if (monthWiseData.length > 0) {
+      sections.push(
+        new Paragraph({
+          text: 'Month-wise Batch Data',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { after: 100 },
+        })
+      );
+
+      const headerCell = (text) =>
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })], shading: { fill: 'D3D3D3' } });
+      const cell = (text, bold = false) =>
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(text ?? ''), bold })] })] });
+
+      for (const group of monthWiseData) {
+        sections.push(
+          new Paragraph({
+            text: group.month,
+            heading: HeadingLevel.HEADING_3,
+            spacing: { before: 200, after: 100 },
+          })
+        );
+        sections.push(
+          new Table({
+            width: { size: 100, type: 'pct' },
+            rows: [
+              new TableRow({ children: ['Date', 'Batch Id', 'State', 'District', 'Total Participants'].map(headerCell) }),
+              ...group.batches.map(
+                (b) =>
+                  new TableRow({
+                    children: [cell(b.date), cell(b.batchId), cell(b.state), cell(b.district), cell(b.totalParticipants)],
+                  })
+              ),
+              new TableRow({
+                children: [
+                  cell(''),
+                  cell(''),
+                  cell(''),
+                  cell(`Total (${group.batches.length} batches)`, true),
+                  cell(group.totalParticipants, true),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+
+      sections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Grand Total Participants: ${monthWiseData.reduce((sum, g) => sum + g.totalParticipants, 0)}`,
+              bold: true,
+            }),
+          ],
+          spacing: { before: 200, after: 400 },
+        })
+      );
+
+      // State-wise monthly training data
+      const { states } = buildStateMonthWiseData(monthWiseData);
+      sections.push(
+        new Paragraph({
+          text: 'State-wise Monthly Training Data',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { after: 100 },
+        })
+      );
+      for (const s of states) {
+        sections.push(
+          new Paragraph({
+            text: s.state,
+            heading: HeadingLevel.HEADING_3,
+            spacing: { before: 200, after: 100 },
+          })
+        );
+        sections.push(
+          new Table({
+            width: { size: 100, type: 'pct' },
+            rows: [
+              new TableRow({ children: ['Month', 'Trainings Conducted', 'Participants'].map(headerCell) }),
+              ...Object.entries(s.byMonth).map(
+                ([month, v]) => new TableRow({ children: [cell(month), cell(v.trainings), cell(v.participants)] })
+              ),
+              new TableRow({
+                children: [cell('Total', true), cell(s.totalTrainings, true), cell(s.totalParticipants, true)],
+              }),
+            ],
+          })
+        );
+      }
+      sections.push(new Paragraph({ text: '', spacing: { after: 400 } }));
+    }
 
     sections.push(
       new Paragraph({
@@ -460,7 +625,7 @@ async function fetchImageBuffer(url) {
  */
 
 
-export async function generatePDFReport(batchesData, carpenterData = [], fy = 'all', kpis = {}) {
+export async function generatePDFReport(batchesData, carpenterData = [], fy = 'all', kpis = {}, monthWiseData = []) {
   // 1. Pre-fetch all photo buffers so PDFKit stream rendering stays fast and synchronous
   const batchesWithImageBuffers = await Promise.all(
     batchesData.map(async (batch) => {
@@ -564,6 +729,51 @@ export async function generatePDFReport(batchesData, carpenterData = [], fy = 'a
       doc.fontSize(12).font('Helvetica');
       doc.text(`Financial Year: ${fy === 'all' ? 'All Years' : fy}`);
       doc.text(`Report Generated: ${new Date().toLocaleDateString('en-IN')}`);
+      doc.moveDown();
+
+      // Month-wise batch data (top of the report)
+      if (monthWiseData.length > 0) {
+        ensureSpace(40);
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000').text('Month-wise Batch Data');
+        const monthWidths = [0.18, 0.24, 0.18, 0.2, 0.2].map((w) => contentWidth * w);
+        monthWiseData.forEach((group) => {
+          sectionHeading(group.month);
+          drawTable(
+            ['Date', 'Batch Id', 'State', 'District', 'Total Participants'],
+            [
+              ...group.batches.map((b) => [b.date, b.batchId, b.state, b.district, String(b.totalParticipants)]),
+              ['', '', '', `Total (${group.batches.length} batches)`, String(group.totalParticipants)],
+            ],
+            monthWidths
+          );
+        });
+        doc.moveDown(0.5);
+        doc.font('Helvetica-Bold').fontSize(12).text(
+          `Grand Total Participants: ${monthWiseData.reduce((sum, g) => sum + g.totalParticipants, 0)}`,
+          margin
+        );
+        doc.moveDown();
+
+        // State-wise monthly training data
+        const { states } = buildStateMonthWiseData(monthWiseData);
+        ensureSpace(40);
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000').text('State-wise Monthly Training Data', margin);
+        const stateWidths = [0.4, 0.3, 0.3].map((w) => contentWidth * w);
+        states.forEach((s) => {
+          sectionHeading(s.state);
+          drawTable(
+            ['Month', 'Trainings Conducted', 'Participants'],
+            [
+              ...Object.entries(s.byMonth).map(([month, v]) => [month, String(v.trainings), String(v.participants)]),
+              ['Total', String(s.totalTrainings), String(s.totalParticipants)],
+            ],
+            stateWidths
+          );
+        });
+        doc.moveDown();
+      }
+
+      doc.fontSize(12).font('Helvetica');
       doc.text(`Total Completed Batches: ${batchesWithImageBuffers.length}`);
       doc.text(`Total Trained : ${kpis.training?.completedTraining || 0}`);
       doc.moveDown();

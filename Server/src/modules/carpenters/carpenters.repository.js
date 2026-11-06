@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase.js';
 import ApiError from '../../utils/ApiError.js';
 import { HTTP_STATUS } from '../../utils/constants.js';
+import { buildMonthsOrFilter } from '../../utils/monthFilter.js';
 
 class CarpentersRepository {
   constructor() {
@@ -103,7 +104,7 @@ class CarpentersRepository {
 
 
   async findAll(filters = {}, options = {}) {
-    const { page = 1, pageSize = 20, search, sort } = options;
+    const { page = 1, pageSize = 20, search, sort, months = [] } = options;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
@@ -127,6 +128,10 @@ class CarpentersRepository {
     if (search) {
       query = query.or(`full_name.ilike.%${search}%,mobile_no.ilike.%${search}%,id_no.ilike.%${search}%`);
     }
+
+    // Month filter: match records whose created_at (enrollment date) falls in ANY selected month
+    const monthsFilter = buildMonthsOrFilter('created_at', months);
+    if (monthsFilter) query = query.or(monthsFilter);
 
     // Apply sort SECOND (before pagination)
     if (sort) {

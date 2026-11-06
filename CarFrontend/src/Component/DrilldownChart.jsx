@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { TrendingUp, MapPin, AlertTriangle } from 'lucide-react';
+import { TrendingUp, MapPin, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Breadcrumb from './Breadcrumb';
 import { CHART_COLORS } from '../constants/chartTheme';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +52,11 @@ export default function DrilldownChart({
   onBarClick,
   onBreadcrumbClick,
   isLeaf = false,
+  monthLabel = null,
+  hasPrevMonth = false,
+  hasNextMonth = false,
+  onPrevMonth,
+  onNextMonth,
 }) {
   const title = LEVEL_LABELS[level] || LEVEL_LABELS.state;
 
@@ -59,17 +64,56 @@ export default function DrilldownChart({
   const navigate = useNavigate();
   // Remounting the chart on path change (via key) replays the bar entrance
   // animation, giving a smooth transition between drilldown levels.
-  const chartKey = useMemo(() => breadcrumbPath.join('/'), [breadcrumbPath]);
+  const chartKey = useMemo(() => `${monthLabel}/${breadcrumbPath.join('/')}`, [monthLabel, breadcrumbPath]);
+  const arrowClass =
+    'p-1 rounded-lg border border-[#DDE3EA] text-slate-600 hover:bg-[#E8ECF2] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent';
   const useAngledLabels = data.length > 6;
+  // Sum of the bars currently shown: the whole month at state level, or the
+  // selected state's month total once drilled into districts.
+  const monthTotal = useMemo(() => data.reduce((sum, d) => sum + (Number(d.count) || 0), 0), [data]);
   // console.log(data);
   return (
     <div className="vault-card flex flex-col h-[440px] hover:shadow-md transition-shadow">
       <div className="flex flex-col gap-3 mb-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-2">
-          <TrendingUp size={14} className="text-[var(--accent-primary)]" />
-          <span>{title}</span>
-        </h3>
-        <Breadcrumb path={breadcrumbPath} onNavigate={onBreadcrumbClick} />
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+            <TrendingUp size={14} className="text-[var(--accent-primary)]" />
+            <span>{title}</span>
+          </h3>
+          {monthLabel && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={arrowClass}
+                onClick={onPrevMonth}
+                disabled={!hasPrevMonth}
+                aria-label="Previous month"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-xs font-semibold text-slate-700 min-w-[110px] text-center">{monthLabel}</span>
+              <button
+                type="button"
+                className={arrowClass}
+                onClick={onNextMonth}
+                disabled={!hasNextMonth}
+                aria-label="Next month"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <Breadcrumb path={breadcrumbPath} onNavigate={onBreadcrumbClick} />
+          {monthLabel && !loading && !error && (
+            <div className="rounded-lg bg-[#E8ECF2] border border-[#DDE3EA] px-3 py-1 text-xs text-slate-600">
+              Total
+              {breadcrumbPath.length > 1 ? ` in ${breadcrumbPath[breadcrumbPath.length - 1]}` : ''}, {monthLabel}:{' '}
+              <span className="font-bold text-[var(--accent-primary)]">{monthTotal.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0">
@@ -96,7 +140,7 @@ export default function DrilldownChart({
               <div className="p-2 rounded-lg bg-[#E8ECF2] text-slate-400 border border-[#DDE3EA]">
                 <MapPin size={16} />
               </div>
-              <span className="text-xs text-slate-400">No records found for this level.</span>
+              <span className="text-xs text-slate-400">{monthLabel ? `No records found for ${monthLabel}.` : 'No records found for this level.'}</span>
             </div>
           </div>
         ) : (

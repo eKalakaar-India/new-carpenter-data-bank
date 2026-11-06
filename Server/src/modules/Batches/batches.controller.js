@@ -45,6 +45,7 @@ export const getAllBatches = asyncHandler(async (req, res) => {
       total: result.count,
       totalPages: Math.ceil(result.count / Number(req.query.pageSize ?? 20)),
     },
+    stats: result.stats,
   };
   res.status(HTTP_STATUS.OK).json(ApiResponse.success('Batches fetched successfully', payload));
 });

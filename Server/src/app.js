@@ -10,7 +10,7 @@ import notFound from './middlewares/notFound.js';
 import routes from './routes/index.js';
 
 const app = express();
-
+app.set('query parser', 'extended'); 
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(compression());
@@ -19,11 +19,14 @@ app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// The SPA fires several API calls per page view (records, batches, filters),
+// so 100 req / 15 min locked admins out quickly. Skip limiting during local dev.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => env.NODE_ENV === 'development',
 });
 app.use(limiter);
 

@@ -29,8 +29,7 @@ export const downloadExcelReport = asyncHandler(async (req, res) => {
 
     // const buffer = await generateExcelReport(reportData, fy || 'all');
 
-    const { batchRows, participantRows } = await dashboardService.getExcelReportData(fy || 'all');
-    console.log ('Batch Rows:', batchRows.length, 'Participant Rows:', participantRows.length);
+    const { batchRows, participantRows, monthWiseData } = await dashboardService.getExcelReportData(fy || 'all');
 
     if (batchRows.length === 0) {
       return res.status(HTTP_STATUS.OK).json(
@@ -38,7 +37,7 @@ export const downloadExcelReport = asyncHandler(async (req, res) => {
       );
     }
 
-    const buffer = await generateExcelReport(batchRows, fy || 'all', participantRows);
+    const buffer = await generateExcelReport(batchRows, fy || 'all', participantRows, monthWiseData);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -72,7 +71,10 @@ export const downloadWordReport = asyncHandler(async (req, res) => {
       );
     }
 
-    const buffer = await generateWordReport(reportData, carpenterData, fy || 'all', kpis);
+    const monthWiseData = dashboardService.buildMonthWiseBatchData(
+      reportData.map((b) => ({ ...b, totalParticipants: b.totalTrainees }))
+    );
+    const buffer = await generateWordReport(reportData, carpenterData, fy || 'all', kpis, monthWiseData);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.docx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
@@ -106,7 +108,10 @@ export const downloadPDFReport = asyncHandler(async (req, res) => {
       );
     }
 
-    const buffer = await generatePDFReport(reportData, carpenterData, fy || 'all', kpis);
+    const monthWiseData = dashboardService.buildMonthWiseBatchData(
+      reportData.map((b) => ({ ...b, totalParticipants: b.totalTrainees }))
+    );
+    const buffer = await generatePDFReport(reportData, carpenterData, fy || 'all', kpis, monthWiseData);
     const filename = `Batch-Report_${fy || 'All'}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');

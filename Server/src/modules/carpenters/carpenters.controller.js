@@ -43,6 +43,7 @@ export const getCarpenterById = asyncHandler(async (req, res) => {
 });
 
 export const getAllCarpenters = asyncHandler(async (req, res) => {
+  console.log(req.query, "query")
   const result = await carpentersService.getAll(req.query);
   const payload = {
     items: result.data,

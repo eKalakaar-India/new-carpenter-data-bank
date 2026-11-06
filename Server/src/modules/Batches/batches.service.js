@@ -5,6 +5,7 @@ import { logger } from '../../utils/logger.js';
 import { supabase } from '../../config/supabase.js';
 import { generateBatchId } from '../../utils/generateBatchId.js';
 import * as GalleryService from '../gallery/gallery.service.js'
+import { parseMonths } from '../../utils/monthFilter.js';
 
 
 class BatchService{
@@ -103,12 +104,20 @@ class BatchService{
         if (query.training_status) filters.training_status = query.training_status;
         if (query.insurance_status) filters.insurance_status = query.insurance_status;
 
-        return this.repository.findAll(filters, {
-        page,
-        pageSize,
-        search: query.search,
-        sort: query.sort,
-        });
+        const months = parseMonths(query.months);
+
+        const [list, stats] = await Promise.all([
+            this.repository.findAll(filters, {
+                page,
+                pageSize,
+                search: query.search,
+                sort: query.sort,
+                months,
+            }),
+            this.repository.getStats(filters, { search: query.search, months }),
+        ]);
+
+        return { ...list, stats };
     }
 }
 

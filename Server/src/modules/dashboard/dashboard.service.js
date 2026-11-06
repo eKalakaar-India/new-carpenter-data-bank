@@ -193,6 +193,7 @@ class DashboardService {
         certificates: this.buildCertificateAnalytics(scopedForPeriod),
         training: this.buildTrainingAnalytics(scopedForPeriod)
       },
+      monthlyDashboardAnalytics: this.buildMonthlyDashboardAnalytics(scopedForPeriod),
       timelineAnalytics: this.buildTimelineAnalytics(scopedForPeriod),
       recentActivities: recentRegistrations.slice(0, 10),
     };
@@ -357,6 +358,37 @@ class DashboardService {
       years: financialYears.map(formatFinancialYear),
       yearly
     };
+  }
+
+  /**
+   * Same state/district breakdowns as dashboardAnalytics, grouped by the
+   * month of registration (created_at) so the drilldown chart can page
+   * through months.
+   * @returns {{months: string[], byMonth: Object}} months are 'YYYY-MM' keys, oldest first.
+   */
+  buildMonthlyDashboardAnalytics(items = []) {
+    const groups = new Map();
+    items.forEach((carpenter) => {
+      const date = carpenter.created_at ? new Date(carpenter.created_at) : null;
+      if (!date || Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(carpenter);
+    });
+
+    const months = [...groups.keys()].sort();
+    const byMonth = {};
+    months.forEach((key) => {
+      const monthItems = groups.get(key);
+      byMonth[key] = {
+        registrations: this.buildRegistrationAnalytics(monthItems),
+        insurance: this.buildInsuranceAnalytics(monthItems),
+        certificates: this.buildCertificateAnalytics(monthItems),
+        training: this.buildTrainingAnalytics(monthItems),
+      };
+    });
+
+    return { months, byMonth };
   }
 
   buildRegistrationAnalytics(items) {
@@ -621,8 +653,17 @@ class DashboardService {
           : 'N/A',
       }))
     );
-    console.log( participantRows[0]);
-    return { batchRows, participantRows };
+    const monthWiseData = this.buildMonthWiseBatchData(
+      batches.map((batch) => ({
+        workshopDate: batch.workshop_date,
+        batchId: batch.batch_id || 'N/A',
+        state: batch.state || 'N/A',
+        district: batch.district || 'N/A',
+        totalParticipants: (batch.participants || []).length,
+      }))
+    );
+
+    return { batchRows, participantRows, monthWiseData };
   }
 
   /**
@@ -647,6 +688,7 @@ class DashboardService {
         trainingDate: batch.workshop_date
           ? new Date(batch.workshop_date).toLocaleDateString('en-IN')
           : 'N/A',
+        workshopDate: batch.workshop_date || null,
         trainerName: batch.trainer_name || 'N/A',
         trainerPhone: batch.trainer_phoneno || 'N/A',
         totalTrainees: participants.length,
@@ -666,6 +708,46 @@ class DashboardService {
           : 'N/A',
       };
     });
+  }
+
+  /**
+   * Groups batches by month (chronological) for the month-wise section of reports.
+   * @param {Array<{workshopDate, batchId, state, district, totalParticipants}>} items
+   * @returns {Array<{month: string, batches: Array, totalParticipants: number}>}
+   */
+  buildMonthWiseBatchData(items = []) {
+    const groups = new Map();
+
+    const sorted = [...items].sort((a, b) => {
+      const ta = a.workshopDate ? new Date(a.workshopDate).getTime() : Infinity;
+      const tb = b.workshopDate ? new Date(b.workshopDate).getTime() : Infinity;
+      return ta - tb;
+    });
+
+    for (const item of sorted) {
+      const date = item.workshopDate ? new Date(item.workshopDate) : null;
+      const valid = date && !Number.isNaN(date.getTime());
+      const key = valid ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : 'no-date';
+      if (!groups.has(key)) {
+        groups.set(key, {
+          month: valid ? date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'Date Not Available',
+          batches: [],
+          totalParticipants: 0,
+        });
+      }
+      const group = groups.get(key);
+      const participants = Number(item.totalParticipants) || 0;
+      group.batches.push({
+        date: valid ? date.toLocaleDateString('en-IN') : 'N/A',
+        batchId: item.batchId || 'N/A',
+        state: item.state || 'N/A',
+        district: item.district || 'N/A',
+        totalParticipants: participants,
+      });
+      group.totalParticipants += participants;
+    }
+
+    return [...groups.values()];
   }
 }
 

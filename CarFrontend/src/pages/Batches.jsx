@@ -19,10 +19,13 @@ import {
   Award,
   Shield,
   ShieldCheck,
-  UploadCloud
+  UploadCloud,
+  Users,
+  CalendarCheck
 } from 'lucide-react';
 import { exportUsersToExcel } from "../utils/exportExcel";
 import CreateBatchModal from "../Component/CreateBatchModal";
+import MonthMultiSelect from "../Component/MonthMultiSelect";
 import statesData from "../constants/StateDistrictData.json";
 
 
@@ -30,7 +33,9 @@ export default function Records() {
   const { 
     records, 
     batchTable,
-    recordsLoading, 
+    batchStats,
+    recordsLoading,
+    recordsError,
     userMobilisers,
     pagination, 
     createBatch,
@@ -243,6 +248,17 @@ export default function Records() {
   const handleFilterChange = (key, val) => {
     setFilters({ [key]: val });
     fetchBatches(1);
+  };
+
+  // Workshop month filter (debounced so ticking several months sends one request)
+  const selectedBatchMonths = Array.isArray(filters.batchMonths) ? filters.batchMonths : [];
+  const monthsFetchTimer = useRef(null);
+  useEffect(() => () => clearTimeout(monthsFetchTimer.current), []);
+
+  const applyBatchMonths = (months) => {
+    setFilters({ batchMonths: months });
+    clearTimeout(monthsFetchTimer.current);
+    monthsFetchTimer.current = setTimeout(() => fetchBatches(1), 500);
   };
 
   const handlePageChange = (newPage) => {
@@ -630,17 +646,64 @@ export default function Records() {
           )}
         </div>
 
+        {/* Workshop Months Multi-select Filter */}
+        <MonthMultiSelect
+          label="Workshop Months"
+          selected={selectedBatchMonths}
+          onChange={applyBatchMonths}
+        />
+
         <div className="flex items-end">
           <button
             onClick={() => {
+              clearTimeout(monthsFetchTimer.current);
               setSearchVal('');
-              setFilters({ category: '', state: '', district:'' });
+              setFilters({ category: '', state: '', district:'', batchMonths: [] });
               fetchBatches(1);
             }}
             className="w-full py-2.5 bg-[#E8ECF2] hover:bg-[#DDE3EA] text-xs text-[var(--accent-primary)] hover:text-red-750 border border-[#DDE3EA] rounded-lg transition-colors font-bold shadow-sm"
           >
             Clear Filters
           </button>
+        </div>
+      </div>
+
+      {recordsError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-4 py-3 rounded-xl">
+          <AlertTriangle size={14} />
+          <span>Could not load batches: {recordsError} The figures below may be out of date.</span>
+        </div>
+      )}
+
+      {/* Summary totals (across all batches matching the filters, not just this page) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white border border-[#DDE3EA] rounded-2xl shadow-sm p-4 flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-[var(--accent-glow)] text-[var(--accent-primary)]">
+            <CalendarCheck size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Total Batches</p>
+            <p className="text-2xl font-bold text-slate-900 tabular-nums">
+              {(batchStats?.totalBatches ?? 0).toLocaleString('en-IN')}
+            </p>
+            <p className="text-[11px] text-slate-500">
+              All statuses · {(batchStats?.batchesHeld ?? 0).toLocaleString('en-IN')} completed
+            </p>
+          </div>
+        </div>
+        <div className="bg-white border border-[#DDE3EA] rounded-2xl shadow-sm p-4 flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-[var(--accent-glow)] text-[var(--accent-primary)]">
+            <Users size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Total Participants</p>
+            <p className="text-2xl font-bold text-slate-900 tabular-nums">
+              {(batchStats?.totalParticipants ?? 0).toLocaleString('en-IN')}
+            </p>
+            <p className="text-[11px] text-slate-500">
+              {(batchStats?.participantsInHeldBatches ?? 0).toLocaleString('en-IN')} in completed batches
+            </p>
+          </div>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { logger } from '../../utils/logger.js';
 import { supabase } from '../../config/supabase.js';
 import { generateCandidateId } from "../../utils/generateCandidateIds.js";
 import * as GalleryService from "../gallery/gallery.service.js";
+import { parseMonths } from '../../utils/monthFilter.js';
 
 
 class CarpentersService {
@@ -113,6 +114,9 @@ class CarpentersService {
 
     if (query.state) filters.state = query.state;
     if (query.district) filters.district = query.district;
+    if (query.batch){
+      filters.batch_id = query.batch;
+    } 
     // if (query.trade) filters.trade = query.trade;
     if (query.training_status) filters.training_status = query.training_status;
     if (query.insurance_status) filters.insurance_status = query.insurance_status;
@@ -120,12 +124,15 @@ class CarpentersService {
     if (query.insuranceClaim && query.insuranceClaim !== 'All') {
       filters.has_insurance = query.insuranceClaim === 'Yes' ? true : false;
     }
+    const months = parseMonths(query.months);
 
+    console.log(query, "filters")
     return this.repository.findAll(filters, {
       page,
       pageSize,
       search: query.search,
       sort: query.sort,
+      months,
     });
   }
 

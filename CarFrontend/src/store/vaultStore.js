@@ -35,6 +35,7 @@ export const useVaultStore = create((set, get) => ({
   recordsMobilizer:[],
   recordsLoading: false,
   batchTable:[],
+  batchStats: { totalBatches: 0, batchesHeld: 0, totalParticipants: 0, participantsInHeldBatches: 0 },
   pagination: {
     total: 0,
     page: 1,
@@ -47,6 +48,8 @@ export const useVaultStore = create((set, get) => ({
     state: '',
     district: '',
     insuranceClaim: 'All',
+    months: [],        // Records page: enrollment months (YYYY-MM)
+    batchMonths: [],   // Batches page: workshop months (YYYY-MM)
     sortBy: 'srNo',
     sortOrder: 'asc'
   },
@@ -131,22 +134,29 @@ export const useVaultStore = create((set, get) => ({
   },
 
   // RECORD ACTIONS
+  recordsError: null,
   fetchRecords: async (page = 1, forceFilters = {}) => {
-    set({ recordsLoading: true });
+    set({ recordsLoading: true, recordsError: null });
     try {
       const activeFilters = { ...get().filters, ...forceFilters };
       console.log('Active Filters:', activeFilters); // Debugging line
-      const response = await axios.get('/api/carpenters', {
-        params: {
+      const params = {
           page,
           pageSize: 200,
           search: activeFilters.search,
           category: activeFilters.category,
           state: activeFilters.state,
           district: activeFilters.district,
+          batch: activeFilters?.batch?.id,
           insuranceClaim: activeFilters.insuranceClaim || 'All',
+          months: Array.isArray(activeFilters.months) ? activeFilters.months.join(',') : '',
           // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
         }
+        const cleanParams = Object.fromEntries(
+          Object.entries(params).filter(([_, value]) => value !== '')
+        );
+      const response = await axios.get('/api/carpenters', {
+        params: cleanParams
       });
 
       console.log(response.data);
@@ -168,12 +178,16 @@ export const useVaultStore = create((set, get) => ({
         filters: activeFilters
       });
     } catch (error) {
-      set({ recordsLoading: false });
+      const status = error?.response?.status;
+      const message = status === 429
+        ? 'Too many requests to the server. Please wait a few minutes and try again.'
+        : getErrorMessage(error);
+      set({ recordsLoading: false, recordsError: message });
       console.error('Failed to load partnership vault entries:', error);
     }
   },
 
-  
+
   fetchAllBatches: async (page = 1, forceFilters = {}) => {
     set({ recordsLoading: true });
     try {
@@ -190,9 +204,10 @@ export const useVaultStore = create((set, get) => ({
   },
 
   fetchBatches: async (page = 1, forceFilters = {}) => {
-    set({ recordsLoading: true });
+    set({ recordsLoading: true, recordsError: null });
     try {
       const activeFilters = { ...get().filters, ...forceFilters };
+      const batchMonths = Array.isArray(activeFilters.batchMonths) ? activeFilters.batchMonths : [];
       const response = await axios.get('/api/batches', {
         params: {
           page,
@@ -200,7 +215,8 @@ export const useVaultStore = create((set, get) => ({
           search: activeFilters.search,
           category: activeFilters.category,
           state: activeFilters.state,
-          district:activeFilters.district
+          district:activeFilters.district,
+          months: batchMonths.length ? batchMonths.join(',') : undefined,
           // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
         }
       });
@@ -213,6 +229,7 @@ export const useVaultStore = create((set, get) => ({
 
       set({
         batchTable: items,
+        batchStats: payload?.stats ?? get().batchStats,
         pagination: {
           total: paginationData.total ?? items.length,
           page: paginationData.page ?? page,
@@ -224,8 +241,12 @@ export const useVaultStore = create((set, get) => ({
         filters: activeFilters
       });
     } catch (error) {
-      set({ recordsLoading: false });
-      console.error('Failed to load partnership vault entries:', error);
+      const status = error?.response?.status;
+      const message = status === 429
+        ? 'Too many requests to the server. Please wait a few minutes and try again.'
+        : getErrorMessage(error);
+      set({ recordsLoading: false, recordsError: message });
+      console.error('Failed to load batches:', error);
     }
   },
 
