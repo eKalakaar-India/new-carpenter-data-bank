@@ -11,6 +11,29 @@ import { certificateLinkRowSchema, insuranceLinkRowSchema } from './links.valida
 // large sheet doesn't fire hundreds of requests at the same time.
 const CONCURRENCY = 20;
 
+// Insurance sheet headers are matched ignoring case, spaces, dashes and
+// underscores, so "insurance_link_niva", "Niva" and "NIVA" all resolve to
+// the same participants column.
+const INSURANCE_HEADER_ALIASES = {
+  id: 'id',
+  systemid: 'id',
+  insurancelinkmsawasth: 'insurance_link_msawasth',
+  insurancelinkmswasth: 'insurance_link_msawasth',
+  msawasth: 'insurance_link_msawasth',
+  mswasth: 'insurance_link_msawasth',
+  insurancelinkniva: 'insurance_link_niva',
+  niva: 'insurance_link_niva',
+};
+
+function normalizeInsuranceRow(rawRow) {
+  const row = {};
+  Object.entries(rawRow).forEach(([header, value]) => {
+    const key = INSURANCE_HEADER_ALIASES[String(header).toLowerCase().replace(/[^a-z0-9]/g, '')];
+    if (key && row[key] === undefined) row[key] = value;
+  });
+  return row;
+}
+
 class LinksService {
   constructor() {
     this.repository = new LinksRepository();
@@ -96,16 +119,21 @@ class LinksService {
       throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'The uploaded file has no data rows');
     }
 
-    const { validRows, invalidRows } = this.validateRows(rawRows, insuranceLinkRowSchema);
+    const { validRows, invalidRows } = this.validateRows(
+      rawRows.map(normalizeInsuranceRow),
+      insuranceLinkRowSchema
+    );
     const existingIds = new Set(await this.repository.findExistingIds(validRows.map((row) => row.id)));
 
     const toUpdate = validRows.filter((row) => existingIds.has(row.id));
     const notFound = validRows.filter((row) => !existingIds.has(row.id)).map((row) => row.id);
 
     const updated = await this.processInBatches(toUpdate, async (row) => {
+      // Only send the links present in this row so a blank cell never wipes
+      // a link that's already stored on the record.
       const insuranceLinks = {};
-      if (row['M-Swasth']) insuranceLinks['M-Swasth'] = row['M-Swasth'];
-      if (row.Niva) insuranceLinks.Niva = row.Niva;
+      if (row.insurance_link_msawasth) insuranceLinks.insurance_link_msawasth = row.insurance_link_msawasth;
+      if (row.insurance_link_niva) insuranceLinks.insurance_link_niva = row.insurance_link_niva;
       await this.repository.updateInsuranceLinks(row.id, insuranceLinks);
       return row.id;
     });

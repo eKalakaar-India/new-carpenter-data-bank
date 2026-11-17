@@ -123,8 +123,8 @@ export default function LinksUpload() {
         />
         <LinkUploadCard
           title="Insurance Links"
-          description="Upload an Excel sheet mapping carpenter IDs to their M-Swasth and/or Niva insurance links."
-          columnsHint="id, M-Swasth, Niva"
+          description="Upload an Excel sheet mapping carpenter system IDs to their M-Swasth and/or Niva insurance links."
+          columnsHint="id (system ID), insurance_link_msawasth, insurance_link_niva"
           uploadState={insuranceLinksUpload}
           onUpload={uploadInsuranceLinks}
         />

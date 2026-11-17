@@ -55,7 +55,7 @@ const STAT_CARD_CONFIG = [
   { key: 'completedTraining', label: 'Trained', icon: Building, desc: 'Functional Registration' },
   { key: 'totalInsurance', label: 'Insurance', icon: FileSpreadsheet, desc: 'Processed Insurance' },
   { key: 'totalCertificates', label: 'Certificates', icon: FileCheck2, desc: 'Issued Certificates on File' },
-  { key: 'appInstalled', label: 'App Installed', icon: Download, desc: 'Issued Certificates on File' },
+  { key: 'appInstalled', label: 'App Installed', icon: Download, desc: 'Carpenters with App Installed' },
 ];
 
 const COLORS = [

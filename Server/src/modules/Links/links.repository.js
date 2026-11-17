@@ -2,15 +2,9 @@ import { supabase } from '../../config/supabase.js';
 import ApiError from '../../utils/ApiError.js';
 import { HTTP_STATUS } from '../../utils/constants.js';
 
-// ASSUMPTION - confirm both of these against your real schema:
-//  1) The Excel "id" column is matched against candidate_id (the
-//     human-facing ID from generateCandidateId, e.g. "CARP0001") rather
-//     than the internal `id` primary key or `id_no` (Aadhaar). Change
-//     MATCH_FIELD if a different column is the right join key.
-//  2) `participants` has a `certificate_link` (text) column and an
-//     `insurance_links` (jsonb) column. If they don't exist yet:
-//       ALTER TABLE participants ADD COLUMN certificate_link text;
-//       ALTER TABLE participants ADD COLUMN insurance_links jsonb;
+// The Excel "id" column is the participant's system id (the `id` primary key).
+// Links are stored in participants.certificate_link,
+// participants.insurance_link_msawasth and participants.insurance_link_niva.
 const MATCH_FIELD = 'id';
 const TABLE = 'participants';
 
@@ -48,10 +42,14 @@ class LinksRepository {
     return data;
   }
 
+  /**
+   * @param {{insurance_link_msawasth?: string, insurance_link_niva?: string}} insuranceLinks
+   *   only the links to set - omitted keys leave the stored value untouched.
+   */
   async updateInsuranceLinks(matchValue, insuranceLinks) {
     const { data, error } = await supabase
       .from(TABLE)
-      .update({has_insurance: true, insurance_links: {MSwasth: insuranceLinks['M-Swasth'], niva:insuranceLinks['Niva']} })
+      .update({ has_insurance: true, ...insuranceLinks })
       .eq(MATCH_FIELD, matchValue)
       .select('id')
       .maybeSingle();

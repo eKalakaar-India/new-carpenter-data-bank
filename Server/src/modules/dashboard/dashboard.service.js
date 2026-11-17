@@ -233,7 +233,8 @@ class DashboardService {
   }
 
   isAppInstalled(carpenter) {
-    return carpenter.has_app_installed === true || carpenter.has_app_installed === 'true' || carpenter.has_app_installed === 'TRUE' || carpenter.has_app_installed === 'yes' || carpenter.has_app_installed === 'YES' || carpenter.has_app_installed === 'Y';
+    const value = carpenter.has_installed;
+    return value === true || ['true', 'yes', 'y'].includes(String(value).trim().toLowerCase());
   }
 
   isTrainingCompleted(carpenter) {
