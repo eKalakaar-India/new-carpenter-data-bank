@@ -1,7 +1,15 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { X } from "lucide-react";
 import { useVaultStore } from "../store/vaultStore";
-import ImageUpload from './ImageUpload'
+import MediaDropzone from "./MediaDropzone";
+
+// Must match Server/src/middlewares/uploadVideo.middleware.js
+const MAX_IMAGES = 2;
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_VIDEO_SECONDS = 30;
+
+const formatSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
 export default function CreateBatchModal({
   isOpen,
@@ -69,9 +77,27 @@ useEffect(() => {
   }
 }, [initialData]);
 
-  const { 
+  const {
     userMobilisers
   } = useVaultStore();
+
+  // Newly picked files vs. paths already stored on the batch. Any new upload
+  // replaces the stored images on the server, so the two are never mixed.
+  const newImages = useMemo(
+    () => (Array.isArray(formData.batch_img) ? formData.batch_img.filter((img) => img instanceof File) : []),
+    [formData.batch_img]
+  );
+  const storedImageCount = Array.isArray(formData.batch_img)
+    ? formData.batch_img.filter((img) => typeof img === "string").length
+    : 0;
+  const newVideo = formData.batch_video instanceof File ? formData.batch_video : null;
+  const hasStoredVideo = typeof formData.batch_video === "string" && formData.batch_video !== "";
+
+  // Object URLs for previews - created once per file and revoked on change/unmount.
+  const imagePreviews = useMemo(() => newImages.map((file) => URL.createObjectURL(file)), [newImages]);
+  useEffect(() => () => imagePreviews.forEach((url) => URL.revokeObjectURL(url)), [imagePreviews]);
+  const videoPreview = useMemo(() => (newVideo ? URL.createObjectURL(newVideo) : null), [newVideo]);
+  useEffect(() => () => videoPreview && URL.revokeObjectURL(videoPreview), [videoPreview]);
 
   if (!isOpen) return null;
 
@@ -83,62 +109,74 @@ useEffect(() => {
     }));
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
+  const setFieldError = (field, message) =>
+    setErrors((prev) => ({ ...prev, [field]: message }));
 
-    if (files.length < 1) {
-      setErrors((prev) => ({
-        ...prev,
-        batch_img: "Please upload at least one image.",
-      }));
-      return;
+  // Adds dropped/picked images to the ones already chosen, up to MAX_IMAGES.
+  const handleImageFiles = (files) => {
+    const messages = [];
+
+    const withinSize = files.filter((file) => file.size <= MAX_FILE_BYTES);
+    if (withinSize.length < files.length) {
+      messages.push(`${files.length - withinSize.length} image(s) skipped - each must be under ${formatSize(MAX_FILE_BYTES)}.`);
     }
 
-    setErrors((prev) => ({
-      ...prev,
-      batch_img: "",
-    }));
+    const combined = [...newImages, ...withinSize];
+    if (combined.length > MAX_IMAGES) {
+      messages.push(`Only ${MAX_IMAGES} images are allowed - extra images were skipped.`);
+    }
 
+    setFieldError("batch_img", messages.join(" "));
+    if (withinSize.length === 0) return;
+
+    setFormData((prev) => ({ ...prev, batch_img: combined.slice(0, MAX_IMAGES) }));
+  };
+
+  const removeImage = (index) => {
+    setFieldError("batch_img", "");
+    const remaining = newImages.filter((_, i) => i !== index);
     setFormData((prev) => ({
       ...prev,
-      batch_img: files,
+      // Removing every new image falls back to whatever was already saved.
+      batch_img: remaining.length > 0 ? remaining : initialData?.batch_img || [],
     }));
   };
 
-  const handleVideoUpload = (e) => {
-    const file = e.target.files[0];
-
+  const handleVideoFiles = ([file]) => {
     if (!file) return;
+
+    if (file.size > MAX_FILE_BYTES) {
+      setFieldError("batch_video", `Video must be under ${formatSize(MAX_FILE_BYTES)} (this one is ${formatSize(file.size)}).`);
+      return;
+    }
 
     const video = document.createElement("video");
     video.preload = "metadata";
+    const probeUrl = URL.createObjectURL(file);
 
     video.onloadedmetadata = () => {
-      window.URL.revokeObjectURL(video.src);
+      URL.revokeObjectURL(probeUrl);
 
-      if (video.duration > 30) {
-        setErrors((prev) => ({
-          ...prev,
-          batch_video: "Video must be less than 30 seconds.",
-        }));
-
-        e.target.value = "";
-
+      if (video.duration > MAX_VIDEO_SECONDS) {
+        setFieldError("batch_video", `Video must be ${MAX_VIDEO_SECONDS} seconds or shorter (this one is ${Math.round(video.duration)}s).`);
         return;
       }
 
-      setErrors((prev) => ({
-        ...prev,
-        batch_video: "",
-      }));
-
-      setFormData((prev) => ({
-        ...prev,
-        batch_video: file,
-      }));
+      setFieldError("batch_video", "");
+      setFormData((prev) => ({ ...prev, batch_video: file }));
     };
 
-    video.src = URL.createObjectURL(file);
+    video.onerror = () => {
+      URL.revokeObjectURL(probeUrl);
+      setFieldError("batch_video", "This video couldn't be read. Please try an MP4 file.");
+    };
+
+    video.src = probeUrl;
+  };
+
+  const removeVideo = () => {
+    setFieldError("batch_video", "");
+    setFormData((prev) => ({ ...prev, batch_video: initialData?.batch_video || null }));
   };
 
   const handleSubmit = (e) => {
@@ -157,7 +195,13 @@ useEffect(() => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-10 overflow-y-scroll">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-10 overflow-y-scroll"
+      // A file dropped outside a dropzone would otherwise make the browser
+      // navigate away to open it, discarding the form.
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => e.preventDefault()}
+    >
       <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl">
 
         {/* Header */}
@@ -396,57 +440,91 @@ useEffect(() => {
             {formData.status === 'COMPLETED' && (
               <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2 border-t border-[#E8ECF2]">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Workshop Images</label>
-                  <input
-                    type="file"
+                  <label className="mb-2 block text-sm font-medium">
+                    Workshop Images{" "}
+                    <span className="font-normal text-gray-500">({newImages.length}/{MAX_IMAGES})</span>
+                  </label>
+                  <MediaDropzone
+                    kind="image"
                     multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="w-full rounded-lg border px-3 py-2"
+                    onFiles={handleImageFiles}
+                    onReject={(msg) => setFieldError("batch_img", msg)}
+                    disabled={newImages.length >= MAX_IMAGES}
+                    title={newImages.length >= MAX_IMAGES
+                      ? `Maximum ${MAX_IMAGES} images added`
+                      : "Drag & drop images here, or click to browse"}
+                    hint={`Up to ${MAX_IMAGES} images, ${formatSize(MAX_FILE_BYTES)} each`}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Upload one or more images.
-                  </p>
+                  {storedImageCount > 0 && newImages.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      {storedImageCount} image{storedImageCount === 1 ? " is" : "s are"} already saved for this batch. Adding new images will replace {storedImageCount === 1 ? "it" : "them"}.
+                    </p>
+                  )}
                   {errors.batch_img && (
                     <p className="text-red-500 text-sm mt-1">{errors.batch_img}</p>
                   )}
-                  {Array.isArray(formData.batch_img) && formData.batch_img.length > 0 && (
+                  {newImages.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-3">
-                      {formData.batch_img.map((img, index) => {
-                        const src = img instanceof File ? URL.createObjectURL(img) : img;
-                        return (
+                      {newImages.map((file, index) => (
+                        <div key={`${file.name}-${file.lastModified}-${index}`} className="relative">
                           <img
-                            key={index}
-                            src={src}
-                            alt={`batch-img-${index}`}
+                            src={imagePreviews[index]}
+                            alt={file.name}
+                            title={`${file.name} (${formatSize(file.size)})`}
                             className="h-24 w-24 rounded-xl object-cover border"
                           />
-                        );
-                      })}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            aria-label={`Remove ${file.name}`}
+                            className="absolute -top-2 -right-2 rounded-full bg-white border shadow p-1 text-gray-600 hover:text-red-600"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Workshop Video</label>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoUpload}
-                    className="w-full rounded-lg border px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Optional video upload (maximum 30 seconds).
-                  </p>
+                  <label className="mb-2 block text-sm font-medium">
+                    Workshop Video <span className="font-normal text-gray-500">(optional)</span>
+                  </label>
+                  {newVideo ? (
+                    <div className="relative">
+                      <video
+                        controls
+                        className="w-full max-h-60 rounded-xl border"
+                        src={videoPreview}
+                      />
+                      <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                        <span className="truncate">{newVideo.name} ({formatSize(newVideo.size)})</span>
+                        <button
+                          type="button"
+                          onClick={removeVideo}
+                          className="ml-3 shrink-0 text-red-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <MediaDropzone
+                      kind="video"
+                      onFiles={handleVideoFiles}
+                      onReject={(msg) => setFieldError("batch_video", msg)}
+                      title="Drag & drop a video here, or click to browse"
+                      hint={`One video, up to ${MAX_VIDEO_SECONDS} seconds and ${formatSize(MAX_FILE_BYTES)}`}
+                    />
+                  )}
+                  {hasStoredVideo && !newVideo && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      A video is already saved for this batch. Adding a new one will replace it.
+                    </p>
+                  )}
                   {errors.batch_video && (
                     <p className="text-red-500 text-sm mt-1">{errors.batch_video}</p>
-                  )}
-                  {formData.batch_video && formData.batch_video instanceof File && (
-                    <video
-                      controls
-                      className="mt-3 w-full max-h-60 rounded-xl border"
-                      src={URL.createObjectURL(formData.batch_video)}
-                    />
                   )}
                 </div>
               </div>

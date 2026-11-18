@@ -3,7 +3,6 @@ import { saveAs } from "file-saver";
 
 
 export const exportUsersToExcel = (users) => {
-  console.log(users);
   const workbook = XLSX.utils.book_new();
 
   const worksheet = XLSX.utils.json_to_sheet(
@@ -50,8 +49,8 @@ export const exportUsersToExcel = (users) => {
       "Nominee Relationship":user.nominee_relationship,
       "Nominee Mobile No":user.nominee_mobile_no,
       "Remarks":user.remarks,
-      "Mobiliser Name":user.mobiliser_data.name,
-      "Mobiliser Mobile No.": user.mobiliser_data.phone_no,
+      "Mobiliser Name":user.mobiliser_data?.name,
+      "Mobiliser Mobile No.": user.mobiliser_data?.phone_no,
       "Candidate ID":user.candidate_id,
       "Certificate ID":"",
       "Certificate Link":user.certificate_link,

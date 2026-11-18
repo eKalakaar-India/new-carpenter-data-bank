@@ -23,6 +23,23 @@ if (cachedToken) {
   setAuthHeader(cachedToken);
 }
 
+// Query params for GET /api/carpenters - shared by the paged table fetch and
+// the "export all filtered records" fetch so both always apply the same filters.
+function buildRecordsQueryParams(activeFilters, page, pageSize) {
+  const params = {
+    page,
+    pageSize,
+    search: activeFilters.search,
+    category: activeFilters.category,
+    state: activeFilters.state,
+    district: activeFilters.district,
+    batch: activeFilters?.batch?.id,
+    insuranceClaim: activeFilters.insuranceClaim || 'All',
+    months: Array.isArray(activeFilters.months) ? activeFilters.months.join(',') : '',
+  };
+  return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== ''));
+}
+
 export const useVaultStore = create((set, get) => ({
   // Auth state
   token: cachedToken,
@@ -139,24 +156,8 @@ export const useVaultStore = create((set, get) => ({
     set({ recordsLoading: true, recordsError: null });
     try {
       const activeFilters = { ...get().filters, ...forceFilters };
-      console.log('Active Filters:', activeFilters); // Debugging line
-      const params = {
-          page,
-          pageSize: 200,
-          search: activeFilters.search,
-          category: activeFilters.category,
-          state: activeFilters.state,
-          district: activeFilters.district,
-          batch: activeFilters?.batch?.id,
-          insuranceClaim: activeFilters.insuranceClaim || 'All',
-          months: Array.isArray(activeFilters.months) ? activeFilters.months.join(',') : '',
-          // sort: activeFilters.sortBy ? `${activeFilters.sortBy},${activeFilters.sortOrder}` : undefined,
-        }
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([_, value]) => value !== '')
-        );
       const response = await axios.get('/api/carpenters', {
-        params: cleanParams
+        params: buildRecordsQueryParams(activeFilters, page, 200)
       });
 
       console.log(response.data);
@@ -187,6 +188,33 @@ export const useVaultStore = create((set, get) => ({
     }
   },
 
+
+  /**
+   * Fetches every record matching the current Records filters/search (all
+   * pages, not just the one on screen) - used by the Excel export when no
+   * rows are ticked. Doesn't touch `records`, so the table is unaffected.
+   */
+  fetchAllFilteredRecords: async () => {
+    const PAGE_SIZE = 1000;
+    const activeFilters = get().filters;
+    const all = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await axios.get('/api/carpenters', {
+        params: buildRecordsQueryParams(activeFilters, page, PAGE_SIZE)
+      });
+      const payload = normalizeApiResponse(response.data);
+      const items = payload?.items ?? payload?.records ?? [];
+      all.push(...items);
+      totalPages = payload?.pagination?.totalPages ?? 1;
+      if (items.length === 0) break;
+      page += 1;
+    } while (page <= totalPages);
+
+    return all;
+  },
 
   fetchAllBatches: async (page = 1, forceFilters = {}) => {
     set({ recordsLoading: true });

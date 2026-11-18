@@ -96,7 +96,8 @@ export default function Records() {
     addToBatch,
     fetchAllBatches,
     allBatches,
-    resolveStorageFileUrl
+    resolveStorageFileUrl,
+    fetchAllFilteredRecords
   } = useVaultStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -130,6 +131,7 @@ export default function Records() {
   const [editStateDropdownOpen, setEditStateDropdownOpen] = useState(false);
   const [editStateSearch, setEditStateSearch] = useState('');
   const [batchId, setBatchID] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Synchronized scrollbar refs
   const topScrollRef = useRef(null);
@@ -222,12 +224,40 @@ export default function Records() {
   };
 
   const handleSelectRow = (e, id, data) => {
-    console.log(data);
     if (e.target.checked) {
       setSelectedIds(prev => [...prev, id]);
       setSelectedRecords(prev => [...prev, data]);
     } else {
       setSelectedIds(prev => prev.filter(item => item !== id));
+      setSelectedRecords(prev => prev.filter(item => item.id !== id));
+    }
+  };
+
+  // Ticked rows -> export just those. Nothing ticked -> export every record
+  // matching the current filters/search (all pages, not just this one).
+  const handleExcelExport = async () => {
+    if (selectedRecords.length > 0) {
+      exportUsersToExcel(selectedRecords);
+      return;
+    }
+
+    if (!pagination.total) {
+      alert('There are no records to export for the current filters.');
+      return;
+    }
+    if (!confirm(`No records are selected. Export all ${pagination.total.toLocaleString()} records matching the current filters?`)) {
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const allRecords = await fetchAllFilteredRecords();
+      exportUsersToExcel(allRecords);
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      alert('Failed to export records. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -416,11 +446,22 @@ export default function Records() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={() => exportUsersToExcel(selectedRecords)}
-            className="btn-gold text-sm font-semibold"
+          <button
+            onClick={handleExcelExport}
+            disabled={isExporting}
+            className="btn-gold text-sm font-semibold disabled:opacity-60 disabled:cursor-wait"
+            title={selectedRecords.length > 0
+              ? 'Export the selected records'
+              : 'No records selected - exports all records matching the current filters'}
           >
-            <span>Excel Sheet</span>
+            <Download size={14} />
+            <span>
+              {isExporting
+                ? 'Preparing Excel...'
+                : selectedRecords.length > 0
+                  ? `Excel Sheet (${selectedRecords.length} selected)`
+                  : `Excel Sheet (All ${pagination.total.toLocaleString()})`}
+            </span>
           </button>
         </div>
       </div>

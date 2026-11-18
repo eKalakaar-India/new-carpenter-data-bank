@@ -141,6 +141,10 @@ class CarpentersRepository {
       // Default sorting: created_at DESC (newest first)
       query = query.order('created_at', { ascending: false });
     }
+    // Tie-breaker: bulk-imported rows share the same created_at, so without a
+    // unique secondary sort the row order shifts between page requests and
+    // records get duplicated/skipped across pages.
+    query = query.order('id', { ascending: true });
 
     // Apply pagination LAST (after all filters and sorting)
     query = query.range(from, to);
